@@ -5,6 +5,8 @@ namespace FreeBudget.Transactions.Domain.ValueObjects;
 
 public sealed partial class Money : ValueObject
 {
+    private Money() { }
+
     public Money(decimal amount, string currencyCode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
@@ -16,8 +18,8 @@ public sealed partial class Money : ValueObject
         CurrencyCode = currencyCode.ToUpperInvariant();
     }
 
-    public decimal Amount { get; }
-    public string CurrencyCode { get; }
+    public decimal Amount { get; private init; }
+    public string CurrencyCode { get; private init; } = null!;
 
     public Money Negate() => new(-Amount, CurrencyCode);
 

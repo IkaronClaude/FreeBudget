@@ -1,4 +1,6 @@
+using FreeBudget.Identity.Application.Interfaces;
 using FreeBudget.Identity.Infrastructure.Persistence;
+using FreeBudget.Identity.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +15,10 @@ public static class DependencyInjection
     {
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("IdentityDb")));
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IGroupRepository, GroupRepository>();
+        services.AddScoped<IBankAccountRepository, BankAccountRepository>();
 
         return services;
     }
