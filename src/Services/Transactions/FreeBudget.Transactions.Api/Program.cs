@@ -2,6 +2,8 @@ using FreeBudget.Common.Infrastructure.Middleware;
 using FreeBudget.Transactions.Application;
 using FreeBudget.Transactions.Application.Commands;
 using FreeBudget.Transactions.Application.DTOs;
+using FreeBudget.Transactions.Application.Queries;
+using FreeBudget.Transactions.Domain.Enums;
 using FreeBudget.Transactions.Infrastructure;
 using FreeBudget.Transactions.Infrastructure.Persistence;
 using MediatR;
@@ -64,4 +66,72 @@ app.MapPost("/api/transactions/import", async (
     });
 }).DisableAntiforgery();
 
+app.MapGet("/api/categorization-rules", async (
+    Guid userId,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var rules = await mediator.Send(new GetCategorizationRulesQuery(userId), ct);
+    return Results.Ok(rules.Select(r => new
+    {
+        r.Id,
+        r.Pattern,
+        MatchType = r.RuleMatchType.ToString(),
+        r.Category,
+        r.Priority,
+    }));
+});
+
+app.MapPost("/api/categorization-rules", async (
+    CreateRuleRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    if (!Enum.TryParse<RuleMatchType>(request.MatchType, true, out var matchType))
+        return Results.BadRequest(new { Error = $"Invalid match type: '{request.MatchType}'. Supported: Contains, Exact, StartsWith, EndsWith" });
+
+    var command = new CreateCategorizationRuleCommand(
+        request.UserId, request.Pattern, matchType, request.Category, request.Priority);
+    var result = await mediator.Send(command, ct);
+
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+
+    return Results.Created($"/api/categorization-rules/{result.Value}", new { Id = result.Value });
+});
+
+app.MapPut("/api/categorization-rules/{id:guid}", async (
+    Guid id,
+    UpdateRuleRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    if (!Enum.TryParse<RuleMatchType>(request.MatchType, true, out var matchType))
+        return Results.BadRequest(new { Error = $"Invalid match type: '{request.MatchType}'" });
+
+    var command = new UpdateCategorizationRuleCommand(id, request.Pattern, matchType, request.Category, request.Priority);
+    var result = await mediator.Send(command, ct);
+
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/categorization-rules/{id:guid}", async (
+    Guid id,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new DeleteCategorizationRuleCommand(id), ct);
+
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+
+    return Results.NoContent();
+});
+
 await app.RunAsync();
+
+record CreateRuleRequest(Guid UserId, string Pattern, string MatchType, string Category, int Priority = 0);
+record UpdateRuleRequest(string Pattern, string MatchType, string Category, int Priority);
