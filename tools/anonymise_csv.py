@@ -141,26 +141,36 @@ def resolve(
 # ── Memo parsing ─────────────────────────────────────────────────────
 
 PARTY_SPLIT = re.compile(r"^(.+?)( {2,}|\t)(.*)$")
-PARTY_PREFIX = re.compile(r"^(.+?)\*(.*)$")
+PARTY_PREFIX = re.compile(r"^(.+?)\*(.+)$")
 
 DELETE_SENTINEL = "\x00__DELETE__"
 
 
-def split_memo(memo: str) -> tuple[str, str, str]:
-    """Split memo into (party, separator, reference).
+def split_memo(memo: str) -> tuple[str, str]:
+    """Split memo into (party, tail).
 
-    Looks for double-space or tab as the boundary between the party
-    name and the reference/description. Falls back to '*' as a
-    separator (e.g. AMZN*1234). If no separator is found the whole
-    memo is treated as the party name.
+    Returns the party name and everything after it (separators included).
+    Checks double-space/tab first, then '*' within the extracted party.
+
+    Examples:
+        "COMPANY  REF123"       → ("COMPANY", "  REF123")
+        "AMZN*1234  ORDER REF"  → ("AMZN", "*1234  ORDER REF")
+        "AMZN*1234"             → ("AMZN", "*1234")
+        "PLAIN TEXT"            → ("PLAIN TEXT", "")
     """
     m = PARTY_SPLIT.match(memo)
     if m:
-        return m.group(1), m.group(2), m.group(3)
-    m = PARTY_PREFIX.match(memo)
-    if m:
-        return m.group(1), "*", m.group(2)
-    return memo, "", ""
+        party, sep, ref = m.group(1), m.group(2), m.group(3)
+    else:
+        party, sep, ref = memo, "", ""
+
+    m2 = PARTY_PREFIX.match(party)
+    if m2:
+        return m2.group(1), "*" + m2.group(2) + sep + ref
+
+    if sep:
+        return party, sep + ref
+    return party, ""
 
 
 # ── Main ─────────────────────────────────────────────────────────────
@@ -244,8 +254,16 @@ def main() -> None:
         if not reader.fieldnames:
             print("Error: CSV has no header row.", file=sys.stderr)
             sys.exit(1)
-        fieldnames = list(reader.fieldnames)
-        rows = list(reader)
+        raw_fieldnames = list(reader.fieldnames)
+        rows_raw = list(reader)
+
+    # Some CSV dialects leave quotes around header names — strip them
+    fieldnames = [fn.strip('"').strip() for fn in raw_fieldnames]
+    if fieldnames != raw_fieldnames:
+        remap = dict(zip(raw_fieldnames, fieldnames))
+        rows = [{remap.get(k, k): v for k, v in row.items()} for row in rows_raw]
+    else:
+        rows = rows_raw
 
     # ── Validate column names ────────────────────────────────────
     all_cols = account_cols + memo_cols + name_cols
@@ -297,14 +315,14 @@ def main() -> None:
         for col in active_memo:
             raw = (row[col] or "").strip()
             if raw:
-                party, sep, ref = split_memo(raw)
+                party, tail = split_memo(raw)
                 if party:
-                    hint = f"party [{col}]  (full: {raw})" if sep else f"party [{col}]"
+                    hint = f"party [{col}]  (full: {raw})" if tail else f"party [{col}]"
                     anon = resolve(party, parties, used_parties, hint)
                     if anon == DELETE_SENTINEL:
                         delete_row = True
                         break
-                    row[col] = anon + sep + ref if sep else anon
+                    row[col] = anon + tail if tail else anon
 
         if delete_row:
             deleted += 1
