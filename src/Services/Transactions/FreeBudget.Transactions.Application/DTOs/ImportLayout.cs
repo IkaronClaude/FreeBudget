@@ -10,6 +10,7 @@ public sealed record ImportLayout
     public string? CurrencyColumn { get; init; }
     public string? DirectionColumn { get; init; }
     public IReadOnlyDictionary<string, string>? DirectionMappings { get; init; }
+    public string? ExternalIdColumn { get; init; }
     public string? RunningBalanceColumn { get; init; }
     public string DateFormat { get; init; } = "dd/MM/yyyy";
     public bool HasHeaderRow { get; init; } = true;

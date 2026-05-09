@@ -18,17 +18,18 @@ public static class BankLayouts
     {
         Name = "Wise",
         BankTypeHint = "Wise",
-        DateColumn = "Date",
-        DescriptionColumn = "Description",
-        AmountColumn = "Amount",
-        CurrencyColumn = "Currency",
+        DateColumn = "Created on",
+        DescriptionColumn = "Target name",
+        AmountColumn = "Source amount (after fees)",
+        CurrencyColumn = "Source currency",
         DirectionColumn = "Direction",
         DirectionMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["IN"] = "Credit",
             ["OUT"] = "Debit",
         },
-        DateFormat = "dd-MM-yyyy",
+        ExternalIdColumn = "ID",
+        DateFormat = "dd/MM/yyyy HH:mm",
         DefaultCurrencyCode = "GBP",
         CreatedByUserId = createdByUserId,
     };

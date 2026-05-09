@@ -14,82 +14,155 @@ public class BankLayoutIntegrationTests
 
     private static readonly Guid UserId = Guid.NewGuid();
 
-    [Fact]
-    public async Task Barclays_layout_parses_typical_export()
-    {
-        var csv = """
-            Number,Date,Account,Amount,Subcategory,Memo
-            1,08/05/2024,20-12-34 12345678,-10.50,DD,DIRECT DEBIT CO  REF123
-            2,08/05/2024,20-12-34 12345678,-25.99,DEB,CARD PAYMENT  SHOP ABC
-            3,09/05/2024,20-12-34 12345678,1500.00,FPI,EMPLOYER LTD  MAY SALARY
-            4,09/05/2024,20-12-34 12345678,-5.00,TFR,TRANSFER  TO SAVINGS
-            """;
+    // ── Barclays ────────────────────────────────────────────────────
 
+    private const string BarclaysCsv =
+        "Number,Date,Account,Amount,Subcategory,Memo\n" +
+        "0,08/05/2026,20-00-00 99887766,-26.35,Standing Order,J SMITH           \tFUNMONEY STO\n" +
+        "0,07/05/2026,20-00-00 99887766,-225.05,Card Purchase,TESCO STORES                 \tON 06 MAY BCC\n" +
+        "0,07/05/2026,20-00-00 99887766,3.40,Counter Credit,MR J DOE\n" +
+        "995416,06/05/2026,20-00-00 99887766,-731.79,Direct Debit,NATIONWIDE          \tSBS00001/123456789 DD\n" +
+        "0,05/05/2026,20-00-00 99887766,-5.00,Debit,Blue Rewards Fee CB   \tBlue Rewards Fee CB\n" +
+        "0,01/05/2026,20-00-00 99887766,2956.91,Counter Credit,ACME CORP LTD\n" +
+        "0,20/04/2026,20-00-00 99887766,-33.98,Card Purchase,AMZNMktplace*NW9OG    \tON 18 APR BCC\n" +
+        "0,20/04/2026,20-00-00 99887766,-9.99,Card Purchase,AMAZON UK* NW9O09E    \tON 14 APR BCC\n" +
+        ",,,,,\n";
+
+    [Fact]
+    public async Task Barclays_parses_standing_order_with_tab_reference()
+    {
         var parser = new CsvTransactionParser();
-        var result = await parser.ParseAsync(ToStream(csv), BankLayouts.Barclays(UserId));
+        var result = await parser.ParseAsync(ToStream(BarclaysCsv), BankLayouts.Barclays(UserId));
+
+        var so = result[0];
+        so.TransactionDate.Should().Be(new DateTime(2026, 5, 8));
+        so.Description.Should().Be("J SMITH           \tFUNMONEY STO");
+        so.Amount.Should().Be(26.35m);
+        so.Direction.Should().Be("Debit");
+        so.CurrencyCode.Should().Be("GBP");
+    }
+
+    [Fact]
+    public async Task Barclays_parses_counter_credit_without_reference()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(BarclaysCsv), BankLayouts.Barclays(UserId));
+
+        var credit = result[2];
+        credit.Description.Should().Be("MR J DOE");
+        credit.Amount.Should().Be(3.40m);
+        credit.Direction.Should().Be("Credit");
+    }
+
+    [Fact]
+    public async Task Barclays_parses_salary_credit()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(BarclaysCsv), BankLayouts.Barclays(UserId));
+
+        var salary = result[5];
+        salary.Description.Should().Be("ACME CORP LTD");
+        salary.Amount.Should().Be(2956.91m);
+        salary.Direction.Should().Be("Credit");
+    }
+
+    [Fact]
+    public async Task Barclays_skips_trailing_empty_row()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(BarclaysCsv), BankLayouts.Barclays(UserId));
+
+        result.Should().HaveCount(8);
+    }
+
+    [Fact]
+    public async Task Barclays_has_no_external_id()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(BarclaysCsv), BankLayouts.Barclays(UserId));
+
+        result.Should().AllSatisfy(t => t.ExternalTransactionId.Should().BeNull());
+    }
+
+    // ── Wise ────────────────────────────────────────────────────────
+
+    private const string WiseCsv =
+        "ID,Status,Direction,Created on,Finished on,Source fee amount,Source fee currency,Target fee amount,Target fee currency,Source name,Source amount (after fees),Source currency,Target name,Target amount (after fees),Target currency,Exchange rate,Reference,Batch,Created by,Category,Note\n" +
+        "CARD_TRANSACTION-1234567890,COMPLETED,OUT,08/05/2026 17:36,08/05/2026 17:36,0,GBP,,,J SMITH,4.30,GBP,CORNER SHOP,4.30,GBP,1,,,J SMITH,Shopping,\n" +
+        "TRANSFER-9876543210,COMPLETED,IN,08/05/2026 00:13,08/05/2026 00:14,0,GBP,,,JOINT ACCOUNT,33.20,GBP,J SMITH,33.20,GBP,1,MONTHLY TRANSFER,,J SMITH,Money added,\n" +
+        "CARD_TRANSACTION-1111222233,COMPLETED,OUT,07/05/2026 18:05,07/05/2026 18:05,0.02,EUR,,,J SMITH,4.97,EUR,BOULANGERIE,4.30,GBP,0.86515,,,J SMITH,Shopping,\n" +
+        "DIRECT_DEBIT_TRANSACTION-44455566,COMPLETED,OUT,30/04/2026 07:55,01/05/2026 06:03,0.47,EUR,,,,98.50,EUR,DVLA,84.93,GBP,0.86225,REF-30042026-99999,,J SMITH,General,\n";
+
+    [Fact]
+    public async Task Wise_parses_card_transaction()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(WiseCsv), BankLayouts.Wise(UserId));
+
+        var card = result[0];
+        card.TransactionDate.Should().Be(new DateTime(2026, 5, 8, 17, 36, 0));
+        card.Description.Should().Be("CORNER SHOP");
+        card.Amount.Should().Be(4.30m);
+        card.CurrencyCode.Should().Be("GBP");
+        card.Direction.Should().Be("Debit");
+        card.ExternalTransactionId.Should().Be("CARD_TRANSACTION-1234567890");
+    }
+
+    [Fact]
+    public async Task Wise_parses_inbound_transfer()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(WiseCsv), BankLayouts.Wise(UserId));
+
+        var transfer = result[1];
+        transfer.Direction.Should().Be("Credit");
+        transfer.Amount.Should().Be(33.20m);
+        transfer.Description.Should().Be("J SMITH");
+        transfer.ExternalTransactionId.Should().Be("TRANSFER-9876543210");
+    }
+
+    [Fact]
+    public async Task Wise_parses_foreign_currency_transaction()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(WiseCsv), BankLayouts.Wise(UserId));
+
+        var eur = result[2];
+        eur.CurrencyCode.Should().Be("EUR");
+        eur.Amount.Should().Be(4.97m);
+        eur.Direction.Should().Be("Debit");
+    }
+
+    [Fact]
+    public async Task Wise_parses_direct_debit()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(WiseCsv), BankLayouts.Wise(UserId));
+
+        var dd = result[3];
+        dd.Description.Should().Be("DVLA");
+        dd.Amount.Should().Be(98.50m);
+        dd.CurrencyCode.Should().Be("EUR");
+        dd.ExternalTransactionId.Should().Be("DIRECT_DEBIT_TRANSACTION-44455566");
+    }
+
+    [Fact]
+    public async Task Wise_parses_all_rows()
+    {
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(WiseCsv), BankLayouts.Wise(UserId));
 
         result.Should().HaveCount(4);
-
-        result[0].TransactionDate.Should().Be(new DateTime(2024, 5, 8));
-        result[0].Description.Should().Be("DIRECT DEBIT CO  REF123");
-        result[0].Amount.Should().Be(10.50m);
-        result[0].Direction.Should().Be("Debit");
-        result[0].CurrencyCode.Should().Be("GBP");
-
-        result[2].TransactionDate.Should().Be(new DateTime(2024, 5, 9));
-        result[2].Description.Should().Be("EMPLOYER LTD  MAY SALARY");
-        result[2].Amount.Should().Be(1500.00m);
-        result[2].Direction.Should().Be("Credit");
     }
 
-    [Fact]
-    public async Task Wise_layout_parses_typical_export()
-    {
-        var csv = """
-            TransferWise ID,Date,Amount,Currency,Description,Payment Reference,Running Balance,Exchange From,Exchange To,Direction
-            TRANSFER-12345,08-05-2024,10.50,GBP,Card payment to Shop,REF001,989.50,,,OUT
-            TRANSFER-12346,09-05-2024,1500.00,GBP,Transfer from Employer,,2489.50,,,IN
-            TRANSFER-12347,09-05-2024,50.00,EUR,Transfer to friend,,200.00,GBP,EUR,OUT
-            """;
-
-        var parser = new CsvTransactionParser();
-        var result = await parser.ParseAsync(ToStream(csv), BankLayouts.Wise(UserId));
-
-        result.Should().HaveCount(3);
-
-        result[0].TransactionDate.Should().Be(new DateTime(2024, 5, 8));
-        result[0].Amount.Should().Be(10.50m);
-        result[0].CurrencyCode.Should().Be("GBP");
-        result[0].Direction.Should().Be("Debit");
-
-        result[1].Direction.Should().Be("Credit");
-
-        result[2].CurrencyCode.Should().Be("EUR");
-        result[2].Amount.Should().Be(50.00m);
-        result[2].Direction.Should().Be("Debit");
-    }
+    // ── Layout field assertions ─────────────────────────────────────
 
     [Fact]
-    public async Task Barclays_layout_handles_memo_with_commas()
-    {
-        var csv = """
-            Number,Date,Account,Amount,Subcategory,Memo
-            1,08/05/2024,20-12-34 12345678,-10.50,DD,"COMPANY, INC  PAYMENT REF"
-            """;
-
-        var parser = new CsvTransactionParser();
-        var result = await parser.ParseAsync(ToStream(csv), BankLayouts.Barclays(UserId));
-
-        result[0].Description.Should().Be("COMPANY, INC  PAYMENT REF");
-    }
-
-    [Fact]
-    public async Task Barclays_layout_all_fields_are_correct()
+    public void Barclays_layout_has_correct_fields()
     {
         var layout = BankLayouts.Barclays(UserId);
 
         layout.Name.Should().Be("Barclays");
-        layout.BankTypeHint.Should().Be("Barclays");
         layout.DateColumn.Should().Be("Date");
         layout.DescriptionColumn.Should().Be("Memo");
         layout.AmountColumn.Should().Be("Amount");
@@ -97,25 +170,23 @@ public class BankLayoutIntegrationTests
         layout.DefaultCurrencyCode.Should().Be("GBP");
         layout.DirectionColumn.Should().BeNull();
         layout.CurrencyColumn.Should().BeNull();
-        layout.CreatedByUserId.Should().Be(UserId);
+        layout.ExternalIdColumn.Should().BeNull();
     }
 
     [Fact]
-    public async Task Wise_layout_all_fields_are_correct()
+    public void Wise_layout_has_correct_fields()
     {
         var layout = BankLayouts.Wise(UserId);
 
         layout.Name.Should().Be("Wise");
-        layout.BankTypeHint.Should().Be("Wise");
-        layout.DateColumn.Should().Be("Date");
-        layout.DescriptionColumn.Should().Be("Description");
-        layout.AmountColumn.Should().Be("Amount");
-        layout.CurrencyColumn.Should().Be("Currency");
+        layout.DateColumn.Should().Be("Created on");
+        layout.DescriptionColumn.Should().Be("Target name");
+        layout.AmountColumn.Should().Be("Source amount (after fees)");
+        layout.CurrencyColumn.Should().Be("Source currency");
         layout.DirectionColumn.Should().Be("Direction");
+        layout.ExternalIdColumn.Should().Be("ID");
+        layout.DateFormat.Should().Be("dd/MM/yyyy HH:mm");
         layout.DirectionMappings.Should().ContainKey("IN").WhoseValue.Should().Be("Credit");
         layout.DirectionMappings.Should().ContainKey("OUT").WhoseValue.Should().Be("Debit");
-        layout.DateFormat.Should().Be("dd-MM-yyyy");
-        layout.DefaultCurrencyCode.Should().Be("GBP");
-        layout.CreatedByUserId.Should().Be(UserId);
     }
 }

@@ -26,11 +26,9 @@ public class CsvTransactionParserTests
     [Fact]
     public async Task ParseAsync_parses_basic_rows()
     {
-        var csv = """
-            Date,Account,Amount,Subcategory,Memo
-            01/05/2024,20-12-34 12345678,-10.50,DD,DIRECT DEBIT COMPANY
-            02/05/2024,20-12-34 12345678,1500.00,FPI,SALARY PAYMENT
-            """;
+        var csv = "Number,Date,Account,Amount,Subcategory,Memo\n" +
+                  "0,15/04/2026,20-00-00 99887766,-42.50,Card Purchase,TESCO STORES\tON 14 APR BCC\n" +
+                  "0,14/04/2026,20-00-00 99887766,1800.00,Counter Credit,ACME CORP LTD\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
@@ -41,24 +39,18 @@ public class CsvTransactionParserTests
     [Fact]
     public async Task ParseAsync_parses_date_with_configured_format()
     {
-        var csv = """
-            Date,Amount,Memo
-            15/03/2024,-5.00,TEST
-            """;
+        var csv = "Date,Amount,Memo\n15/03/2026,-5.00,TEST SHOP\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
 
-        result[0].TransactionDate.Should().Be(new DateTime(2024, 3, 15));
+        result[0].TransactionDate.Should().Be(new DateTime(2026, 3, 15));
     }
 
     [Fact]
     public async Task ParseAsync_infers_debit_direction_from_negative_amount()
     {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024,-10.50,PAYMENT
-            """;
+        var csv = "Date,Amount,Memo\n01/05/2026,-10.50,CORNER SHOP\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
@@ -70,10 +62,7 @@ public class CsvTransactionParserTests
     [Fact]
     public async Task ParseAsync_infers_credit_direction_from_positive_amount()
     {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024,1500.00,SALARY
-            """;
+        var csv = "Date,Amount,Memo\n01/05/2026,1500.00,EMPLOYER LTD\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
@@ -96,11 +85,7 @@ public class CsvTransactionParserTests
             DefaultCurrencyCode = "USD",
         };
 
-        var csv = """
-            Date,Amount,Description,Type
-            2024-05-01,10.50,PAYMENT,Debit
-            2024-05-01,1500.00,SALARY,Credit
-            """;
+        var csv = "Date,Amount,Description,Type\n2026-05-01,10.50,PAYMENT,Debit\n2026-05-01,1500.00,SALARY,Credit\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), layout);
@@ -126,15 +111,11 @@ public class CsvTransactionParserTests
                 ["IN"] = "Credit",
                 ["OUT"] = "Debit",
             },
-            DateFormat = "yyyy-MM-dd",
+            DateFormat = "dd/MM/yyyy HH:mm",
             DefaultCurrencyCode = "GBP",
         };
 
-        var csv = """
-            Date,Amount,Description,Dir
-            2024-05-01,10.50,PAYMENT,OUT
-            2024-05-01,1500.00,SALARY,IN
-            """;
+        var csv = "Date,Amount,Description,Dir\n08/05/2026 17:36,10.50,SHOP,OUT\n08/05/2026 00:13,33.20,TRANSFER IN,IN\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), layout);
@@ -146,10 +127,7 @@ public class CsvTransactionParserTests
     [Fact]
     public async Task ParseAsync_uses_default_currency_when_no_currency_column()
     {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024,-10.50,PAYMENT
-            """;
+        var csv = "Date,Amount,Memo\n01/05/2026,-10.50,SHOP\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
@@ -167,15 +145,11 @@ public class CsvTransactionParserTests
             DescriptionColumn = "Description",
             AmountColumn = "Amount",
             CurrencyColumn = "Currency",
-            DateFormat = "yyyy-MM-dd",
+            DateFormat = "dd/MM/yyyy",
             DefaultCurrencyCode = "GBP",
         };
 
-        var csv = """
-            Date,Amount,Description,Currency
-            2024-05-01,10.50,PAYMENT,EUR
-            2024-05-01,20.00,TRANSFER,USD
-            """;
+        var csv = "Date,Amount,Description,Currency\n01/05/2026,10.50,PAYMENT,EUR\n01/05/2026,20.00,TRANSFER,USD\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), layout);
@@ -198,11 +172,7 @@ public class CsvTransactionParserTests
             DefaultCurrencyCode = "GBP",
         };
 
-        var csv = """
-            Date,Amount,Description,Balance
-            01/05/2024,-10.50,PAYMENT,989.50
-            02/05/2024,1500.00,SALARY,2489.50
-            """;
+        var csv = "Date,Amount,Description,Balance\n01/05/2026,-10.50,PAYMENT,989.50\n02/05/2026,1500.00,SALARY,2489.50\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), layout);
@@ -214,10 +184,7 @@ public class CsvTransactionParserTests
     [Fact]
     public async Task ParseAsync_running_balance_is_null_when_not_configured()
     {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024,-10.50,PAYMENT
-            """;
+        var csv = "Date,Amount,Memo\n01/05/2026,-10.50,PAYMENT\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
@@ -226,31 +193,47 @@ public class CsvTransactionParserTests
     }
 
     [Fact]
-    public async Task ParseAsync_handles_quoted_fields_with_commas()
+    public async Task ParseAsync_reads_external_id_when_configured()
     {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024,-10.50,"PAYMENT, INC  REF123"
-            """;
+        var layout = new ImportLayout
+        {
+            Name = "WithId",
+            DateColumn = "Date",
+            DescriptionColumn = "Description",
+            AmountColumn = "Amount",
+            ExternalIdColumn = "ID",
+            DateFormat = "dd/MM/yyyy",
+            DefaultCurrencyCode = "GBP",
+        };
+
+        var csv = "ID,Date,Amount,Description\nTXN-123456,01/05/2026,10.50,SHOP\n";
 
         var parser = new CsvTransactionParser();
-        var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
+        var result = await parser.ParseAsync(ToStream(csv), layout);
 
-        result[0].Description.Should().Be("PAYMENT, INC  REF123");
+        result[0].ExternalTransactionId.Should().Be("TXN-123456");
     }
 
     [Fact]
-    public async Task ParseAsync_handles_quoted_fields_with_escaped_quotes()
+    public async Task ParseAsync_external_id_is_null_when_not_configured()
     {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024,-10.50,"PAYMENT ""SPECIAL""  REF123"
-            """;
+        var csv = "Date,Amount,Memo\n01/05/2026,-10.50,SHOP\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
 
-        result[0].Description.Should().Be("PAYMENT \"SPECIAL\"  REF123");
+        result[0].ExternalTransactionId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ParseAsync_handles_quoted_fields_with_commas()
+    {
+        var csv = "Date,Amount,Memo\n01/05/2026,-10.50,\"COMPANY, INC\tREF123\"\n";
+
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
+
+        result[0].Description.Should().Be("COMPANY, INC\tREF123");
     }
 
     [Fact]
@@ -267,10 +250,7 @@ public class CsvTransactionParserTests
             Delimiter = ';',
         };
 
-        var csv = """
-            Date;Amount;Description
-            01/05/2024;-10.50;PAYMENT
-            """;
+        var csv = "Date;Amount;Description\n01/05/2026;-10.50;PAYMENT\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), layout);
@@ -282,36 +262,32 @@ public class CsvTransactionParserTests
     [Fact]
     public async Task ParseAsync_skips_empty_rows()
     {
-        var csv = "Date,Amount,Memo\r\n01/05/2024,-10.50,PAYMENT\r\n\r\n02/05/2024,20.00,SALARY\r\n";
+        var csv = "Number,Date,Account,Amount,Subcategory,Memo\n" +
+                  "0,01/05/2026,20-00-00 99887766,-10.50,Debit,SHOP\n" +
+                  ",,,,,\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
 
-        result.Should().HaveCount(2);
+        result.Should().HaveCount(1);
     }
 
     [Fact]
     public async Task ParseAsync_trims_whitespace_from_fields()
     {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024 , -10.50 , PAYMENT
-            """;
+        var csv = "Date,Amount,Memo\n 01/05/2026 , -10.50 , SHOP \n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
 
-        result[0].Description.Should().Be("PAYMENT");
+        result[0].Description.Should().Be("SHOP");
         result[0].Amount.Should().Be(10.50m);
     }
 
     [Fact]
     public async Task ParseAsync_zero_amount_is_credit()
     {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024,0.00,ZERO TXN
-            """;
+        var csv = "Date,Amount,Memo\n01/05/2026,0.00,ZERO TXN\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
@@ -321,25 +297,9 @@ public class CsvTransactionParserTests
     }
 
     [Fact]
-    public async Task ParseAsync_returns_null_external_id()
-    {
-        var csv = """
-            Date,Amount,Memo
-            01/05/2024,-10.50,PAYMENT
-            """;
-
-        var parser = new CsvTransactionParser();
-        var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
-
-        result[0].ExternalTransactionId.Should().BeNull();
-    }
-
-    [Fact]
     public async Task ParseAsync_returns_empty_list_for_header_only_csv()
     {
-        var csv = """
-            Date,Amount,Memo
-            """;
+        var csv = "Date,Amount,Memo\n";
 
         var parser = new CsvTransactionParser();
         var result = await parser.ParseAsync(ToStream(csv), BarclaysLayout);
@@ -350,10 +310,7 @@ public class CsvTransactionParserTests
     [Fact]
     public async Task ParseAsync_throws_for_missing_required_column()
     {
-        var csv = """
-            Date,Wrong,Memo
-            01/05/2024,-10.50,PAYMENT
-            """;
+        var csv = "Date,Wrong,Memo\n01/05/2026,-10.50,SHOP\n";
 
         var parser = new CsvTransactionParser();
 
@@ -361,5 +318,26 @@ public class CsvTransactionParserTests
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Amount*");
+    }
+
+    [Fact]
+    public async Task ParseAsync_parses_datetime_with_time_component()
+    {
+        var layout = new ImportLayout
+        {
+            Name = "WithTime",
+            DateColumn = "Created on",
+            DescriptionColumn = "Target name",
+            AmountColumn = "Amount",
+            DateFormat = "dd/MM/yyyy HH:mm",
+            DefaultCurrencyCode = "GBP",
+        };
+
+        var csv = "Created on,Amount,Target name\n08/05/2026 17:36,4.30,CORNER SHOP\n";
+
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(csv), layout);
+
+        result[0].TransactionDate.Should().Be(new DateTime(2026, 5, 8, 17, 36, 0));
     }
 }

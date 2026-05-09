@@ -76,8 +76,16 @@ internal sealed class CsvTransactionParser : ICsvTransactionParser
                     runningBalance = decimal.Parse(balStr, NumberStyles.Number, CultureInfo.InvariantCulture);
             }
 
+            string? externalId = null;
+            if (layout.ExternalIdColumn is not null)
+            {
+                var idStr = csv.GetField(layout.ExternalIdColumn)?.Trim();
+                if (!string.IsNullOrEmpty(idStr))
+                    externalId = idStr;
+            }
+
             transactions.Add(new RawBankTransaction(
-                ExternalTransactionId: null,
+                ExternalTransactionId: externalId,
                 TransactionDate: date,
                 Description: description,
                 Amount: amount,
