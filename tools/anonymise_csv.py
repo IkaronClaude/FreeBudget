@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Anonymise bank CSV data for testing.
 
-Maintains persistent alias tables (JSON) so the same account/party
-always maps to the same alias across runs. Interactive: prompts for
-new aliases, prevents duplicates, supports '!' to keep original.
+Maintains a persistent alias table (JSON) so the same party always maps
+to the same alias across runs. Interactive: prompts for new aliases,
+prevents duplicates.
 
 Preserves original file encoding (UTF-8/UTF-8 BOM/UTF-16/Latin-1)
 and line endings (CRLF/LF).
@@ -11,31 +11,22 @@ and line endings (CRLF/LF).
 Zero external dependencies — stdlib only (Python 3.10+).
 
 Usage:
-    # Barclays (default columns: Account + Memo)
+    # Barclays (default columns: Account;Memo)
     python anonymise_csv.py barclays.csv
 
     # Wise
-    python anonymise_csv.py wise.csv \\
-        --name-col "Source name" \\
-        --name-col "Target name" \\
-        --name-col "Created By"
+    python anonymise_csv.py wise.csv -c "Source name;Target name;Created by"
 
-    # Mix of column types
-    python anonymise_csv.py export.csv \\
-        --account-col Account \\
-        --memo-col Memo \\
-        --name-col "Created By"
+    # Custom
+    python anonymise_csv.py export.csv -c "Account;Memo;Created By"
 
-Column types:
-    --account-col   Account identifiers (e.g. "12-34-56 12345678").
-                    Aliased from the accounts table.
-    --memo-col      Memo/description fields with embedded party names.
-                    Splits on double-space or tab to extract the party,
-                    aliases the party, keeps the reference portion.
-    --name-col      Plain name fields (e.g. "Source name"). The entire
-                    cell value is aliased from the parties table.
+Prompt shortcuts:
+    alias       Alias the matched party, keep reference tail
+    !           Keep original value unchanged
+    !text       Override the entire cell with "text"
+    ~           Delete the row (and all future rows matching this party)
 
-If no column flags are given, defaults to: --account-col Account --memo-col Memo
+Column default: Account;Memo (if -c not given)
 """
 
 import argparse
@@ -49,13 +40,7 @@ from pathlib import Path
 # ── Encoding detection ───────────────────────────────────────────────
 
 def detect_file_format(path: Path) -> tuple[str, str]:
-    """Detect encoding and line endings from raw bytes.
-
-    Returns (encoding, newline) where encoding is suitable for open().
-    Writing with the same encoding preserves BOM where applicable:
-      - 'utf-8-sig' re-emits the UTF-8 BOM on write
-      - 'utf-16'    re-emits the UTF-16 BOM on write
-    """
+    """Detect encoding and line endings from raw bytes."""
     raw = path.read_bytes()
 
     if raw[:3] == b"\xef\xbb\xbf":
@@ -80,7 +65,7 @@ def detect_file_format(path: Path) -> tuple[str, str]:
     return enc, newline
 
 
-# ── Alias tables ─────────────────────────────────────────────────────
+# ── Alias table ──────────────────────────────────────────────────────
 
 def load_table(path: Path) -> dict[str, str]:
     if path.exists():
@@ -97,8 +82,12 @@ def save_table(table: dict[str, str], path: Path) -> None:
 
 # ── Interactive prompting ────────────────────────────────────────────
 
+DELETE_SENTINEL = "\x00__DELETE__"
+OVERRIDE_PREFIX = "\x00__OVERRIDE__"
+
+
 def prompt_alias(real_value: str, label: str, used_aliases: set[str]) -> str | None:
-    """Prompt for an alias. Returns None for 'keep original', DELETE_SENTINEL for delete."""
+    """Prompt for an alias. Returns None for 'keep original'."""
     print(f"\n  New {label}:")
     print(f"    \033[1m{real_value}\033[0m")
     while True:
@@ -140,32 +129,30 @@ def resolve(
     return alias
 
 
-# ── Memo parsing ─────────────────────────────────────────────────────
+# ── Cell parsing ─────────────────────────────────────────────────────
 
 PARTY_SPLIT = re.compile(r"^(.+?)( {2,}|\t)(.*)$")
 PARTY_PREFIX = re.compile(r"^(.+?)\*(.+)$")
 
-DELETE_SENTINEL = "\x00__DELETE__"
-OVERRIDE_PREFIX = "\x00__OVERRIDE__"
 
+def split_cell(value: str) -> tuple[str, str]:
+    """Split a cell into (party, tail).
 
-def split_memo(memo: str) -> tuple[str, str]:
-    """Split memo into (party, tail).
-
-    Returns the party name and everything after it (separators included).
-    Checks double-space/tab first, then '*' within the extracted party.
+    Extracts the party name and keeps everything after it (separators
+    included). Checks double-space/tab first, then '*' within the
+    extracted party.
 
     Examples:
         "COMPANY  REF123"       → ("COMPANY", "  REF123")
         "AMZN*1234  ORDER REF"  → ("AMZN", "*1234  ORDER REF")
         "AMZN*1234"             → ("AMZN", "*1234")
-        "PLAIN TEXT"            → ("PLAIN TEXT", "")
+        "John Smith"            → ("John Smith", "")
     """
-    m = PARTY_SPLIT.match(memo)
+    m = PARTY_SPLIT.match(value)
     if m:
         party, sep, ref = m.group(1), m.group(2), m.group(3)
     else:
-        party, sep, ref = memo, "", ""
+        party, sep, ref = value, "", ""
 
     m2 = PARTY_PREFIX.match(party)
     if m2:
@@ -185,37 +172,21 @@ def main() -> None:
         epilog=(
             "examples:\n"
             "  %(prog)s barclays.csv\n"
-            '  %(prog)s wise.csv --name-col "Source name" '
-            '--name-col "Target name" --name-col "Created By"\n'
+            '  %(prog)s wise.csv -c "Source name;Target name;Created by"\n'
         ),
     )
     ap.add_argument("input", help="Input CSV file")
     ap.add_argument("-o", "--output", help="Output file (default: <input>_anon.csv)")
     ap.add_argument(
-        "--account-col",
-        action="append",
+        "-c", "--columns",
         default=None,
-        metavar="COL",
-        help="Account column to anonymise (repeatable)",
-    )
-    ap.add_argument(
-        "--memo-col",
-        action="append",
-        default=None,
-        metavar="COL",
-        help="Memo column — extracts party via double-space split (repeatable)",
-    )
-    ap.add_argument(
-        "--name-col",
-        action="append",
-        default=None,
-        metavar="COL",
-        help="Name column — aliases whole cell value (repeatable)",
+        metavar="COLS",
+        help='Semicolon-separated column names to anonymise (default: "Account;Memo")',
     )
     ap.add_argument(
         "--tables-dir",
         default=None,
-        help="Directory for alias JSON files (default: next to this script)",
+        help="Directory for alias JSON file (default: next to this script)",
     )
     args = ap.parse_args()
 
@@ -230,22 +201,13 @@ def main() -> None:
         else input_path.with_stem(input_path.stem + "_anon")
     )
 
-    account_cols: list[str] = args.account_col or []
-    memo_cols: list[str] = args.memo_col or []
-    name_cols: list[str] = args.name_col or []
-
-    if not account_cols and not memo_cols and not name_cols:
-        account_cols = ["Account"]
-        memo_cols = ["Memo"]
+    user_cols = [c.strip() for c in (args.columns or "Account;Memo").split(";") if c.strip()]
 
     tables_dir = Path(args.tables_dir) if args.tables_dir else Path(__file__).parent
-    accounts_path = tables_dir / "anon_accounts.json"
-    parties_path = tables_dir / "anon_parties.json"
+    aliases_path = tables_dir / "anon_parties.json"
 
-    accounts = load_table(accounts_path)
-    parties = load_table(parties_path)
-    used_accounts: set[str] = set(accounts.values())
-    used_parties: set[str] = set(parties.values())
+    aliases = load_table(aliases_path)
+    used_aliases: set[str] = set(aliases.values())
 
     # ── Detect original encoding & line endings ──────────────────
     enc, newline = detect_file_format(input_path)
@@ -257,47 +219,32 @@ def main() -> None:
         if not reader.fieldnames:
             print("Error: CSV has no header row.", file=sys.stderr)
             sys.exit(1)
-        raw_fieldnames = list(reader.fieldnames)
-        rows_raw = list(reader)
+        fieldnames = list(reader.fieldnames)
+        rows = list(reader)
 
-    # Build case-/quote-insensitive lookup: normalized form → actual key in row dicts
-    fieldnames = raw_fieldnames
+    # ── Resolve columns (case-/quote-insensitive) ────────────────
     col_lookup: dict[str, str] = {}
     for fn in fieldnames:
-        norm = fn.strip('"').strip().lower()
-        col_lookup[norm] = fn
+        col_lookup[fn.strip('"').strip().lower()] = fn
 
-    def resolve_col(user_col: str) -> str | None:
-        """Map a user-supplied column name to the actual CSV fieldname."""
-        return col_lookup.get(user_col.strip('"').strip().lower())
-
-    # ── Validate column names ────────────────────────────────────
-    all_cols = account_cols + memo_cols + name_cols
-    missing = [c for c in all_cols if resolve_col(c) is None]
-    present = {c: resolve_col(c) for c in all_cols if resolve_col(c) is not None}
+    active_cols: list[str] = []
+    missing: list[str] = []
+    for uc in user_cols:
+        actual = col_lookup.get(uc.strip('"').strip().lower())
+        if actual:
+            active_cols.append(actual)
+        else:
+            missing.append(uc)
 
     if missing:
-        print(
-            f"Warning: column(s) not found and will be skipped: {missing}",
-            file=sys.stderr,
-        )
-    if not present:
+        print(f"Warning: column(s) not found and will be skipped: {missing}", file=sys.stderr)
+    if not active_cols:
         print("Error: none of the specified columns exist in the CSV.", file=sys.stderr)
         print(f"  CSV columns: {fieldnames}", file=sys.stderr)
         sys.exit(1)
 
-    rows = rows_raw
-    active_account = [present[c] for c in account_cols if c in present]
-    active_memo = [present[c] for c in memo_cols if c in present]
-    active_name = [present[c] for c in name_cols if c in present]
-
     print(f"Processing {len(rows)} rows from {input_path} ...")
-    if active_account:
-        print(f"  Account columns: {active_account}")
-    if active_memo:
-        print(f"  Memo columns:    {active_memo}")
-    if active_name:
-        print(f"  Name columns:    {active_name}")
+    print(f"  Columns: {active_cols}")
 
     # ── Process rows ─────────────────────────────────────────────
     kept_rows: list[dict[str, str]] = []
@@ -306,50 +253,22 @@ def main() -> None:
     for row in rows:
         delete_row = False
 
-        for col in active_account:
+        for col in active_cols:
             raw = (row[col] or "").strip()
-            if raw:
-                alias = resolve(raw, accounts, used_accounts, f"account [{col}]")
-                if alias == DELETE_SENTINEL:
-                    delete_row = True
-                    break
-                if alias.startswith(OVERRIDE_PREFIX):
-                    alias = alias[len(OVERRIDE_PREFIX):]
-                row[col] = alias
+            if not raw:
+                continue
 
-        if delete_row:
-            deleted += 1
-            continue
+            party, tail = split_cell(raw)
+            hint = f"[{col}]  (full: {raw})" if tail else f"[{col}]"
+            anon = resolve(party, aliases, used_aliases, hint)
 
-        for col in active_memo:
-            raw = (row[col] or "").strip()
-            if raw:
-                party, tail = split_memo(raw)
-                if party:
-                    hint = f"party [{col}]  (full: {raw})" if tail else f"party [{col}]"
-                    anon = resolve(party, parties, used_parties, hint)
-                    if anon == DELETE_SENTINEL:
-                        delete_row = True
-                        break
-                    if anon.startswith(OVERRIDE_PREFIX):
-                        row[col] = anon[len(OVERRIDE_PREFIX):]
-                    else:
-                        row[col] = anon + tail if tail else anon
-
-        if delete_row:
-            deleted += 1
-            continue
-
-        for col in active_name:
-            raw = (row[col] or "").strip()
-            if raw:
-                alias = resolve(raw, parties, used_parties, f"name [{col}]")
-                if alias == DELETE_SENTINEL:
-                    delete_row = True
-                    break
-                if alias.startswith(OVERRIDE_PREFIX):
-                    alias = alias[len(OVERRIDE_PREFIX):]
-                row[col] = alias
+            if anon == DELETE_SENTINEL:
+                delete_row = True
+                break
+            if anon.startswith(OVERRIDE_PREFIX):
+                row[col] = anon[len(OVERRIDE_PREFIX):]
+            else:
+                row[col] = anon + tail if tail else anon
 
         if delete_row:
             deleted += 1
@@ -368,16 +287,14 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(kept_rows)
 
-    save_table(accounts, accounts_path)
-    save_table(parties, parties_path)
+    save_table(aliases, aliases_path)
 
     written = len(kept_rows)
     print(f"\nDone — {written} rows written to {output_path}")
     if deleted:
         print(f"  Deleted:  {deleted} row(s)")
     print(f"  Encoding: {enc}  Line endings: {repr(newline)}")
-    print(f"  Accounts: {len(accounts)} mapping(s) in {accounts_path}")
-    print(f"  Parties:  {len(parties)} mapping(s) in {parties_path}")
+    print(f"  Aliases:  {len(aliases)} mapping(s) in {aliases_path}")
 
 
 if __name__ == "__main__":
