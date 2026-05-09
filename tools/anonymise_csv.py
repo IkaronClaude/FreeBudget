@@ -98,15 +98,17 @@ def save_table(table: dict[str, str], path: Path) -> None:
 # ── Interactive prompting ────────────────────────────────────────────
 
 def prompt_alias(real_value: str, label: str, used_aliases: set[str]) -> str | None:
-    """Prompt for an alias. Returns None for 'keep original'."""
+    """Prompt for an alias. Returns None for 'keep original', DELETE_SENTINEL for delete."""
     print(f"\n  New {label}:")
     print(f"    \033[1m{real_value}\033[0m")
     while True:
-        choice = input("  Alias (or ! to keep as-is): ").strip()
+        choice = input("  Alias (! = keep, ~ = delete row): ").strip()
         if choice == "!":
             return None
+        if choice == "~":
+            return DELETE_SENTINEL
         if not choice:
-            print("    Cannot be empty. Type ! to keep original.")
+            print("    Cannot be empty. Type ! to keep, ~ to delete row.")
             continue
         if choice in used_aliases:
             print(f"    '{choice}' is already taken. Pick another.")
@@ -139,18 +141,25 @@ def resolve(
 # ── Memo parsing ─────────────────────────────────────────────────────
 
 PARTY_SPLIT = re.compile(r"^(.+?)( {2,}|\t)(.*)$")
+PARTY_PREFIX = re.compile(r"^(.+?)\*(.*)$")
+
+DELETE_SENTINEL = "\x00__DELETE__"
 
 
 def split_memo(memo: str) -> tuple[str, str, str]:
     """Split memo into (party, separator, reference).
 
     Looks for double-space or tab as the boundary between the party
-    name and the reference/description. If no separator is found the
-    whole memo is treated as the party name.
+    name and the reference/description. Falls back to '*' as a
+    separator (e.g. AMZN*1234). If no separator is found the whole
+    memo is treated as the party name.
     """
     m = PARTY_SPLIT.match(memo)
     if m:
         return m.group(1), m.group(2), m.group(3)
+    m = PARTY_PREFIX.match(memo)
+    if m:
+        return m.group(1), "*", m.group(2)
     return memo, "", ""
 
 
@@ -266,25 +275,55 @@ def main() -> None:
         print(f"  Name columns:    {active_name}")
 
     # ── Process rows ─────────────────────────────────────────────
+    kept_rows: list[dict[str, str]] = []
+    deleted = 0
+
     for row in rows:
+        delete_row = False
+
         for col in active_account:
-            raw = row[col].strip()
+            raw = (row[col] or "").strip()
             if raw:
-                row[col] = resolve(raw, accounts, used_accounts, f"account [{col}]")
+                alias = resolve(raw, accounts, used_accounts, f"account [{col}]")
+                if alias == DELETE_SENTINEL:
+                    delete_row = True
+                    break
+                row[col] = alias
+
+        if delete_row:
+            deleted += 1
+            continue
 
         for col in active_memo:
-            raw = row[col].strip()
+            raw = (row[col] or "").strip()
             if raw:
                 party, sep, ref = split_memo(raw)
                 if party:
                     hint = f"party [{col}]  (full: {raw})" if sep else f"party [{col}]"
                     anon = resolve(party, parties, used_parties, hint)
+                    if anon == DELETE_SENTINEL:
+                        delete_row = True
+                        break
                     row[col] = anon + sep + ref if sep else anon
 
+        if delete_row:
+            deleted += 1
+            continue
+
         for col in active_name:
-            raw = row[col].strip()
+            raw = (row[col] or "").strip()
             if raw:
-                row[col] = resolve(raw, parties, used_parties, f"name [{col}]")
+                alias = resolve(raw, parties, used_parties, f"name [{col}]")
+                if alias == DELETE_SENTINEL:
+                    delete_row = True
+                    break
+                row[col] = alias
+
+        if delete_row:
+            deleted += 1
+            continue
+
+        kept_rows.append(row)
 
     # ── Write with original encoding & line endings ──────────────
     with open(output_path, "w", newline="", encoding=enc) as f:
@@ -295,12 +334,15 @@ def main() -> None:
             quoting=csv.QUOTE_MINIMAL,
         )
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(kept_rows)
 
     save_table(accounts, accounts_path)
     save_table(parties, parties_path)
 
-    print(f"\nDone — {len(rows)} rows written to {output_path}")
+    written = len(kept_rows)
+    print(f"\nDone — {written} rows written to {output_path}")
+    if deleted:
+        print(f"  Deleted:  {deleted} row(s)")
     print(f"  Encoding: {enc}  Line endings: {repr(newline)}")
     print(f"  Accounts: {len(accounts)} mapping(s) in {accounts_path}")
     print(f"  Parties:  {len(parties)} mapping(s) in {parties_path}")
