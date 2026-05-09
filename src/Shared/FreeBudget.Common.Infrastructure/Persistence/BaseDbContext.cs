@@ -5,6 +5,19 @@ namespace FreeBudget.Common.Infrastructure.Persistence;
 
 public abstract class BaseDbContext(DbContextOptions options) : DbContext(options)
 {
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(AggregateRoot<Guid>).IsAssignableFrom(entityType.ClrType))
+            {
+                modelBuilder.Entity(entityType.ClrType).Ignore("DomainEvents");
+            }
+        }
+    }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SetAuditableFields();
