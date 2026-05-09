@@ -35,8 +35,8 @@ public class ImportCsvHandlerTests
     {
         var rawTransactions = new List<RawBankTransaction>
         {
-            new(null, new DateTime(2024, 5, 1), "PAYMENT ONE", 10.50m, "GBP", "Debit", null),
-            new(null, new DateTime(2024, 5, 2), "SALARY", 1500.00m, "GBP", "Credit", null),
+            new(null, new DateTime(2024, 5, 1), "PAYMENT ONE", 10.50m, "GBP", "Debit", null, null),
+            new(null, new DateTime(2024, 5, 2), "SALARY", 1500.00m, "GBP", "Credit", null, null),
         };
 
         _parser.ParseAsync(Arg.Any<Stream>(), Arg.Any<ImportLayout>(), Arg.Any<CancellationToken>())
@@ -64,8 +64,8 @@ public class ImportCsvHandlerTests
     {
         var rawTransactions = new List<RawBankTransaction>
         {
-            new("EXT-001", new DateTime(2024, 5, 1), "EXISTING", 10.50m, "GBP", "Debit", null),
-            new("EXT-002", new DateTime(2024, 5, 2), "NEW ONE", 20.00m, "GBP", "Credit", null),
+            new("EXT-001", new DateTime(2024, 5, 1), "EXISTING", 10.50m, "GBP", "Debit", null, null),
+            new("EXT-002", new DateTime(2024, 5, 2), "NEW ONE", 20.00m, "GBP", "Credit", null, null),
         };
 
         _parser.ParseAsync(Arg.Any<Stream>(), Arg.Any<ImportLayout>(), Arg.Any<CancellationToken>())
@@ -122,7 +122,7 @@ public class ImportCsvHandlerTests
     {
         var rawTransactions = new List<RawBankTransaction>
         {
-            new(null, new DateTime(2024, 5, 1), "PAYMENT", 10.50m, "GBP", "Debit", 989.50m),
+            new(null, new DateTime(2024, 5, 1), "PAYMENT", 10.50m, "GBP", "Debit", 989.50m, null),
         };
 
         _parser.ParseAsync(Arg.Any<Stream>(), Arg.Any<ImportLayout>(), Arg.Any<CancellationToken>())

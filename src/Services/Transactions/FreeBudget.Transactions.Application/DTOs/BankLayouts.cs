@@ -29,6 +29,7 @@ public static class BankLayouts
             ["OUT"] = "Debit",
         },
         ExternalIdColumn = "ID",
+        CategoryColumn = "Category",
         DateFormat = "dd/MM/yyyy HH:mm",
         DefaultCurrencyCode = "GBP",
         CreatedByUserId = createdByUserId,

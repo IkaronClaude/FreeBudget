@@ -84,6 +84,14 @@ internal sealed class CsvTransactionParser : ICsvTransactionParser
                     externalId = idStr;
             }
 
+            string? category = null;
+            if (layout.CategoryColumn is not null)
+            {
+                var catStr = csv.GetField(layout.CategoryColumn)?.Trim();
+                if (!string.IsNullOrEmpty(catStr))
+                    category = catStr;
+            }
+
             transactions.Add(new RawBankTransaction(
                 ExternalTransactionId: externalId,
                 TransactionDate: date,
@@ -91,7 +99,8 @@ internal sealed class CsvTransactionParser : ICsvTransactionParser
                 Amount: amount,
                 CurrencyCode: currencyCode,
                 Direction: direction,
-                RunningBalance: runningBalance));
+                RunningBalance: runningBalance,
+                Category: category));
         }
 
         return Task.FromResult<IReadOnlyList<RawBankTransaction>>(transactions);

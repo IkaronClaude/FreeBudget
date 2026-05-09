@@ -51,7 +51,8 @@ internal sealed class ImportCsvHandler(
                     direction,
                     runningBalance,
                     raw.ExternalTransactionId,
-                    batch.Id));
+                    batch.Id,
+                    raw.Category));
             }
 
             if (transactions.Count > 0)

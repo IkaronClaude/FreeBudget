@@ -63,6 +63,12 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
 
         builder.Navigation(t => t.RunningBalance).IsRequired(false);
 
+        builder.Property(t => t.Category)
+            .HasColumnName("category")
+            .HasMaxLength(200);
+
+        builder.HasIndex(t => t.Category);
+
         builder.Property(t => t.ExternalTransactionId)
             .HasColumnName("external_transaction_id")
             .HasMaxLength(500);

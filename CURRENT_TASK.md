@@ -1,25 +1,32 @@
 # Current Task
 
-## Status: complete
+## Status: in-progress
 
 ## Task
 
-Build CSV import feature: generic parser, predefined Barclays/Wise layouts, import command handler, API endpoint.
+Add categorisation rules: Category field on Transaction, rule engine for auto-categorisation, CRUD endpoints.
 
 ## Branch
 
-feature/csv-import (merged to main)
+feature/categorization-rules
+
+## Plan
+
+- [ ] Commit 1: Add Category to Transaction entity + EF config
+- [ ] Commit 2: Add CategoryColumn to ImportLayout + parser + Wise layout
+- [ ] Commit 3: CategorizationRule entity + MatchType enum + tests
+- [ ] Commit 4: ICategorizer + rule matcher implementation + tests
+- [ ] Commit 5: Wire categorizer into import handler
+- [ ] Commit 6: CRUD endpoints for rules + category query
+- [ ] Commit 7: Migration + update tracker, merge to main
+
+## Design Notes
+
+- Category lives as a string on Transaction (simple, queryable)
+- Rules live in Transactions service for now (avoid cross-service coupling)
+- Categorization microservice stays empty for future features (ML, shared categories)
+- Wise CSV Category column imported directly; Barclays uses rule matching
 
 ## Progress
 
-- [x] Commit 1: Add CsvHelper package reference
-- [x] Commit 2: CsvTransactionParser tests + implementation (20 tests)
-- [x] Commit 3: Predefined bank layouts (Barclays, Wise) + integration tests
-- [x] Commit 4: Direction mappings for bank-specific normalization
-- [x] Commit 5: ImportCsv command handler + application tests (6 tests)
-- [x] Commit 6: Fix Wise layout to match real CSV format, add ExternalIdColumn
-- [x] Commit 7: CSV upload API endpoint
-
-## Next Steps
-
-Pick next priority task from TRACKER.md (likely: rule engine for transaction categorization)
+- [x] Commit 1+2: Category field on Transaction + CategoryColumn in import pipeline
