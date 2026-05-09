@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\FreeBudget.SharedKernel\FreeBudget.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

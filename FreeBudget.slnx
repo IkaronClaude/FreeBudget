@@ -1,5 +1,12 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Transactions/">
+    <Project Path="src/Services/Transactions/FreeBudget.Transactions.Api/FreeBudget.Transactions.Api.csproj" />
+    <Project Path="src/Services/Transactions/FreeBudget.Transactions.Application/FreeBudget.Transactions.Application.csproj" />
+    <Project Path="src/Services/Transactions/FreeBudget.Transactions.Domain/FreeBudget.Transactions.Domain.csproj" />
+    <Project Path="src/Services/Transactions/FreeBudget.Transactions.Infrastructure/FreeBudget.Transactions.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/FreeBudget.Common.Contracts/FreeBudget.Common.Contracts.csproj" />
     <Project Path="src/Shared/FreeBudget.Common.Infrastructure/FreeBudget.Common.Infrastructure.csproj" />
