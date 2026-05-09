@@ -58,3 +58,7 @@ nunit-*.xml
 
 # Claude Code
 CLAUDE.md
+
+# Anonymisation alias tables (contain real bank data mappings)
+anon_accounts.json
+anon_parties.json
