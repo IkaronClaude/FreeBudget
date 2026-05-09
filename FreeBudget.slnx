@@ -36,10 +36,12 @@
     <Project Path="tests/Services/FreeBudget.Categorization.Domain.Tests/FreeBudget.Categorization.Domain.Tests.csproj" />
     <Project Path="tests/Services/FreeBudget.Identity.Application.Tests/FreeBudget.Identity.Application.Tests.csproj" />
     <Project Path="tests/Services/FreeBudget.Identity.Domain.Tests/FreeBudget.Identity.Domain.Tests.csproj" />
+    <Project Path="tests/Services/FreeBudget.Identity.Infrastructure.Tests/FreeBudget.Identity.Infrastructure.Tests.csproj" />
     <Project Path="tests/Services/FreeBudget.Ledger.Application.Tests/FreeBudget.Ledger.Application.Tests.csproj" />
     <Project Path="tests/Services/FreeBudget.Ledger.Domain.Tests/FreeBudget.Ledger.Domain.Tests.csproj" />
     <Project Path="tests/Services/FreeBudget.Transactions.Application.Tests/FreeBudget.Transactions.Application.Tests.csproj" />
     <Project Path="tests/Services/FreeBudget.Transactions.Domain.Tests/FreeBudget.Transactions.Domain.Tests.csproj" />
+    <Project Path="tests/Services/FreeBudget.Transactions.Infrastructure.Tests/FreeBudget.Transactions.Infrastructure.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Shared/">
     <Project Path="tests/Shared/FreeBudget.SharedKernel.Tests/FreeBudget.SharedKernel.Tests.csproj" />
