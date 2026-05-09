@@ -1,5 +1,6 @@
 using FluentAssertions;
 using FreeBudget.Transactions.Domain.Entities;
+using FreeBudget.SharedKernel.ValueObjects;
 using FreeBudget.Transactions.Domain.ValueObjects;
 using FreeBudget.Transactions.Infrastructure.Persistence;
 using FreeBudget.Transactions.Infrastructure.Persistence.Repositories;

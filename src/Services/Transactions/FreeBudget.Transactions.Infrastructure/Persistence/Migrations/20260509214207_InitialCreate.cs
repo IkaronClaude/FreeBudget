@@ -12,6 +12,24 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "categorization_rules",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_by_user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    pattern = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    match_type = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    category = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    priority = table.Column<int>(type: "integer", nullable: false),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    modified_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_categorization_rules", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "import_batches",
                 columns: table => new
                 {
@@ -43,6 +61,7 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
                     running_balance_currency_code = table.Column<string>(type: "character varying(3)", maxLength: 3, nullable: true),
                     external_transaction_id = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     import_batch_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    category = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     modified_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -50,6 +69,11 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
                 {
                     table.PrimaryKey("PK_transactions", x => x.id);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_categorization_rules_created_by_user_id",
+                table: "categorization_rules",
+                column: "created_by_user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_import_batches_bank_account_id",
@@ -69,6 +93,11 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
                 filter: "external_transaction_id IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_transactions_category",
+                table: "transactions",
+                column: "category");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_transactions_import_batch_id",
                 table: "transactions",
                 column: "import_batch_id");
@@ -77,6 +106,9 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "categorization_rules");
+
             migrationBuilder.DropTable(
                 name: "import_batches");
 

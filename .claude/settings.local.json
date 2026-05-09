@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet nuget list *)",
+      "Bash(git *)",
+      "Read(//c/Users/Claude/AppData/Local/Temp/claude/C--Projects-FreeBudget/3ced9a0d-cd79-4597-82ec-266b586a04c8/tasks/**)",
+      "Bash(dotnet package *)",
+      "Bash(dotnet sln add *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet tool install *)",
+      "Bash(xargs ls *)",
+      "Bash(dotnet ef migrations *)",
+      "Bash(xargs grep *)"
+    ]
+  }
+}

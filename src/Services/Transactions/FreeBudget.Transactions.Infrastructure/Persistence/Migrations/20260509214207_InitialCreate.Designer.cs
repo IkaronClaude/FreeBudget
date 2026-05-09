@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(TransactionsDbContext))]
-    [Migration("20260509154637_InitialCreate")]
+    [Migration("20260509214207_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -24,6 +24,54 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("FreeBudget.Transactions.Domain.Entities.CategorizationRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("Pattern")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("pattern");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("RuleMatchType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("match_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.ToTable("categorization_rules", (string)null);
+                });
 
             modelBuilder.Entity("FreeBudget.Transactions.Domain.Entities.ImportBatch", b =>
                 {
@@ -77,6 +125,11 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("bank_account_id");
 
+                    b.Property<string>("Category")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("category");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -114,6 +167,8 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BankAccountId");
 
+                    b.HasIndex("Category");
+
                     b.HasIndex("ImportBatchId");
 
                     b.HasIndex("BankAccountId", "ExternalTransactionId")
@@ -125,7 +180,7 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("FreeBudget.Transactions.Domain.Entities.Transaction", b =>
                 {
-                    b.OwnsOne("FreeBudget.Transactions.Domain.ValueObjects.Money", "Amount", b1 =>
+                    b.OwnsOne("FreeBudget.SharedKernel.ValueObjects.Money", "Amount", b1 =>
                         {
                             b1.Property<Guid>("TransactionId")
                                 .HasColumnType("uuid");
@@ -149,7 +204,7 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
                                 .HasForeignKey("TransactionId");
                         });
 
-                    b.OwnsOne("FreeBudget.Transactions.Domain.ValueObjects.Money", "RunningBalance", b1 =>
+                    b.OwnsOne("FreeBudget.SharedKernel.ValueObjects.Money", "RunningBalance", b1 =>
                         {
                             b1.Property<Guid>("TransactionId")
                                 .HasColumnType("uuid");

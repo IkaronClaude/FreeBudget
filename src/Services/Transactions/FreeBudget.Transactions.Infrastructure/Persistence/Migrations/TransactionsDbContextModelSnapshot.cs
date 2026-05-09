@@ -177,7 +177,7 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("FreeBudget.Transactions.Domain.Entities.Transaction", b =>
                 {
-                    b.OwnsOne("FreeBudget.Transactions.Domain.ValueObjects.Money", "Amount", b1 =>
+                    b.OwnsOne("FreeBudget.SharedKernel.ValueObjects.Money", "Amount", b1 =>
                         {
                             b1.Property<Guid>("TransactionId")
                                 .HasColumnType("uuid");
@@ -201,7 +201,7 @@ namespace FreeBudget.Transactions.Infrastructure.Persistence.Migrations
                                 .HasForeignKey("TransactionId");
                         });
 
-                    b.OwnsOne("FreeBudget.Transactions.Domain.ValueObjects.Money", "RunningBalance", b1 =>
+                    b.OwnsOne("FreeBudget.SharedKernel.ValueObjects.Money", "RunningBalance", b1 =>
                         {
                             b1.Property<Guid>("TransactionId")
                                 .HasColumnType("uuid");

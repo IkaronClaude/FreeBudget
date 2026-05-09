@@ -1,5 +1,6 @@
 using FreeBudget.SharedKernel.Domain;
 using FreeBudget.Transactions.Domain.Events;
+using FreeBudget.SharedKernel.ValueObjects;
 using FreeBudget.Transactions.Domain.ValueObjects;
 
 namespace FreeBudget.Transactions.Domain.Entities;

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using FreeBudget.Transactions.Domain.Entities;
 using FreeBudget.Transactions.Domain.Events;
+using FreeBudget.SharedKernel.ValueObjects;
 using FreeBudget.Transactions.Domain.ValueObjects;
 
 namespace FreeBudget.Transactions.Domain.Tests.Entities;

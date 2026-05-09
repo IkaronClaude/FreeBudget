@@ -1,7 +1,7 @@
 using FluentAssertions;
-using FreeBudget.Transactions.Domain.ValueObjects;
+using FreeBudget.SharedKernel.ValueObjects;
 
-namespace FreeBudget.Transactions.Domain.Tests.ValueObjects;
+namespace FreeBudget.SharedKernel.Tests.ValueObjects;
 
 public class MoneyTests
 {
