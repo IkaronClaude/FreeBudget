@@ -10,8 +10,8 @@
 - [ ] Add auto-clear ledger debt via rules
 - [ ] Add reporting/graphing queries (income vs. expense by category, trends)
 - [ ] NatWest import parser (nice to have)
-- [ ] EF Core persistence layer (Identity + Transactions)
 - [ ] API endpoints for import workflow
+- [ ] Transaction sharing rules (auto-share with groups via user-defined rules)
 
 ## In Progress
 
@@ -31,6 +31,9 @@
 - [x] Transactions value objects (Money, TransactionDirection)
 - [x] Transactions domain events (TransactionImported, ImportBatchCompleted) + ImportStatus enum
 - [x] Transactions application interfaces + DTOs (ITransactionRepository, IImportBatchRepository, ICsvTransactionParser, ImportLayout, RawBankTransaction)
+- [x] EF Core persistence layer (Identity + Transactions: entity configs, repositories, migrations, auto-migrate)
+- [x] Infrastructure test projects (25 repository tests with InMemory provider)
+- [x] Default admin user seed on startup
 
 ## Bugs
 
@@ -38,4 +41,7 @@
 
 ## Notes
 
-- 135 total tests across 9 test projects (Identity domain: 66, Transactions domain: 55, SharedKernel: 8, smoke tests: 6)
+- 160 total tests across 11 test projects
+- Default admin: admin@freebudget.local / "Admin" (seeded on first startup in dev mode)
+- Architecture: event queue for inter-service comms (deferred until cross-service flow needed)
+- Future: overnight bank feed auto-pull for connected accounts
