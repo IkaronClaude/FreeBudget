@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/FreeBudget.Common.Contracts/FreeBudget.Common.Contracts.csproj" />
+    <Project Path="src/Shared/FreeBudget.Common.Infrastructure/FreeBudget.Common.Infrastructure.csproj" />
     <Project Path="src/Shared/FreeBudget.SharedKernel/FreeBudget.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/tests/" />
