@@ -260,18 +260,21 @@ def main() -> None:
         raw_fieldnames = list(reader.fieldnames)
         rows_raw = list(reader)
 
-    # Some CSV dialects leave quotes around header names — strip them
-    fieldnames = [fn.strip('"').strip() for fn in raw_fieldnames]
-    if fieldnames != raw_fieldnames:
-        remap = dict(zip(raw_fieldnames, fieldnames))
-        rows = [{remap.get(k, k): v for k, v in row.items()} for row in rows_raw]
-    else:
-        rows = rows_raw
+    # Build case-/quote-insensitive lookup: normalized form → actual key in row dicts
+    fieldnames = raw_fieldnames
+    col_lookup: dict[str, str] = {}
+    for fn in fieldnames:
+        norm = fn.strip('"').strip().lower()
+        col_lookup[norm] = fn
+
+    def resolve_col(user_col: str) -> str | None:
+        """Map a user-supplied column name to the actual CSV fieldname."""
+        return col_lookup.get(user_col.strip('"').strip().lower())
 
     # ── Validate column names ────────────────────────────────────
     all_cols = account_cols + memo_cols + name_cols
-    missing = [c for c in all_cols if c not in fieldnames]
-    present = [c for c in all_cols if c in fieldnames]
+    missing = [c for c in all_cols if resolve_col(c) is None]
+    present = {c: resolve_col(c) for c in all_cols if resolve_col(c) is not None}
 
     if missing:
         print(
@@ -283,9 +286,10 @@ def main() -> None:
         print(f"  CSV columns: {fieldnames}", file=sys.stderr)
         sys.exit(1)
 
-    active_account = [c for c in account_cols if c in fieldnames]
-    active_memo = [c for c in memo_cols if c in fieldnames]
-    active_name = [c for c in name_cols if c in fieldnames]
+    rows = rows_raw
+    active_account = [present[c] for c in account_cols if c in present]
+    active_memo = [present[c] for c in memo_cols if c in present]
+    active_name = [present[c] for c in name_cols if c in present]
 
     print(f"Processing {len(rows)} rows from {input_path} ...")
     if active_account:
