@@ -2,16 +2,14 @@
 
 ## Priority Tasks
 
-- [ ] Build Barclays CSV import parser (top priority bank)
-- [ ] Build Wise import parser (2nd priority bank)
 - [ ] Implement rule engine for transaction categorization
 - [ ] Define Ledger domain entities (Split, LedgerEntry, MoneyOwedPot)
 - [ ] Implement transaction split workflow
 - [ ] Add auto-clear ledger debt via rules
 - [ ] Add reporting/graphing queries (income vs. expense by category, trends)
 - [ ] NatWest import parser (nice to have)
-- [ ] API endpoints for import workflow
 - [ ] Transaction sharing rules (auto-share with groups via user-defined rules)
+- [ ] Persist ImportLayout to DB for user-editable custom layouts
 
 ## In Progress
 
@@ -34,6 +32,11 @@
 - [x] EF Core persistence layer (Identity + Transactions: entity configs, repositories, migrations, auto-migrate)
 - [x] Infrastructure test projects (25 repository tests with InMemory provider)
 - [x] Default admin user seed on startup
+- [x] CSV import: generic CsvTransactionParser with CsvHelper
+- [x] CSV import: predefined Barclays + Wise layouts (matched to real CSV formats)
+- [x] CSV import: ImportCsv MediatR command handler with dedup support
+- [x] CSV import: POST /api/transactions/import endpoint
+- [x] Python anonymise_csv.py tool for test data
 
 ## Bugs
 
@@ -41,7 +44,9 @@
 
 ## Notes
 
-- 160 total tests across 11 test projects
+- 198 total tests across 11 test projects
 - Default admin: admin@freebudget.local / "Admin" (seeded on first startup in dev mode)
 - Architecture: event queue for inter-service comms (deferred until cross-service flow needed)
 - Future: overnight bank feed auto-pull for connected accounts
+- Future: importer marketplace — users upload/share CSV layout definitions
+- Future: ImportLayout persistence to DB for custom user-editable layouts
