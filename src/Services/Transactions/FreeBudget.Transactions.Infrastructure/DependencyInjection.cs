@@ -1,4 +1,5 @@
 using FreeBudget.Transactions.Application.Interfaces;
+using FreeBudget.Transactions.Infrastructure.Parsing;
 using FreeBudget.Transactions.Infrastructure.Persistence;
 using FreeBudget.Transactions.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ public static class DependencyInjection
 
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
+        services.AddSingleton<ICsvTransactionParser, CsvTransactionParser>();
 
         return services;
     }
