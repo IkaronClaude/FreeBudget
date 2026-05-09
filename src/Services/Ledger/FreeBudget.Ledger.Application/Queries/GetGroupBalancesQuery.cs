@@ -25,12 +25,18 @@ internal sealed class GetGroupBalancesHandler(ILedgerEntryRepository repository)
 
         foreach (var entry in entries)
         {
-            var key = (entry.OwedByUserId, entry.PaidByUserId);
-            debts.TryGetValue(key, out var current);
-
-            debts[key] = entry.EntryType == LedgerEntryType.Expense
-                ? current + entry.Amount.Amount
-                : current - entry.Amount.Amount;
+            if (entry.EntryType == LedgerEntryType.Expense)
+            {
+                var key = (entry.OwedByUserId, entry.PaidByUserId);
+                debts.TryGetValue(key, out var current);
+                debts[key] = current + entry.Amount.Amount;
+            }
+            else
+            {
+                var key = (entry.PaidByUserId, entry.OwedByUserId);
+                debts.TryGetValue(key, out var current);
+                debts[key] = current - entry.Amount.Amount;
+            }
         }
 
         var netDebts = new Dictionary<(Guid, Guid), decimal>();
