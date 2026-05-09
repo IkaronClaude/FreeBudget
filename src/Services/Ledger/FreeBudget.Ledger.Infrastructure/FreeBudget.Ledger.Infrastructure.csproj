@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FreeBudget.Ledger.Application\FreeBudget.Ledger.Application.csproj" />
+    <ProjectReference Include="..\..\..\Shared\FreeBudget.Common.Infrastructure\FreeBudget.Common.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FreeBudget.Ledger.Application\FreeBudget.Ledger.Application.csproj" />
+    <ProjectReference Include="..\FreeBudget.Ledger.Infrastructure\FreeBudget.Ledger.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
