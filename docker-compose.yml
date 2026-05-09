@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: freebudget
+      POSTGRES_PASSWORD: freebudget_dev
+      POSTGRES_DB: freebudget
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U freebudget"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  transactions-api:
+    build:
+      context: .
+      dockerfile: src/Services/Transactions/FreeBudget.Transactions.Api/Dockerfile
+    ports:
+      - "5100:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__TransactionsDb=Host=postgres;Database=freebudget_transactions;Username=freebudget;Password=freebudget_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  categorization-api:
+    build:
+      context: .
+      dockerfile: src/Services/Categorization/FreeBudget.Categorization.Api/Dockerfile
+    ports:
+      - "5200:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__CategorizationDb=Host=postgres;Database=freebudget_categorization;Username=freebudget;Password=freebudget_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ledger-api:
+    build:
+      context: .
+      dockerfile: src/Services/Ledger/FreeBudget.Ledger.Api/Dockerfile
+    ports:
+      - "5300:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__LedgerDb=Host=postgres;Database=freebudget_ledger;Username=freebudget;Password=freebudget_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  identity-api:
+    build:
+      context: .
+      dockerfile: src/Services/Identity/FreeBudget.Identity.Api/Dockerfile
+    ports:
+      - "5400:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__IdentityDb=Host=postgres;Database=freebudget_identity;Username=freebudget;Password=freebudget_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
