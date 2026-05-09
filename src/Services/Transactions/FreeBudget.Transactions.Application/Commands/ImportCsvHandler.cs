@@ -9,7 +9,9 @@ namespace FreeBudget.Transactions.Application.Commands;
 internal sealed class ImportCsvHandler(
     ICsvTransactionParser parser,
     ITransactionRepository transactionRepository,
-    IImportBatchRepository importBatchRepository)
+    IImportBatchRepository importBatchRepository,
+    ICategorizationRuleRepository ruleRepository,
+    ICategorizer categorizer)
     : IRequestHandler<ImportCsvCommand, Result<ImportCsvResult>>
 {
     public async Task<Result<ImportCsvResult>> Handle(
@@ -53,6 +55,16 @@ internal sealed class ImportCsvHandler(
                     raw.ExternalTransactionId,
                     batch.Id,
                     raw.Category));
+            }
+
+            var rules = await ruleRepository.GetByUserIdAsync(
+                request.Layout.CreatedByUserId, cancellationToken);
+
+            foreach (var txn in transactions.Where(t => t.Category is null))
+            {
+                var category = categorizer.Categorize(txn.Description, rules);
+                if (category is not null)
+                    txn.UpdateCategory(category);
             }
 
             if (transactions.Count > 0)
