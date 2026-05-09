@@ -51,7 +51,11 @@ internal sealed class CsvTransactionParser : ICsvTransactionParser
 
             if (layout.DirectionColumn is not null)
             {
-                direction = csv.GetField(layout.DirectionColumn)!.Trim();
+                var rawDirection = csv.GetField(layout.DirectionColumn)!.Trim();
+                direction = layout.DirectionMappings is not null
+                    && layout.DirectionMappings.TryGetValue(rawDirection, out var mapped)
+                        ? mapped
+                        : rawDirection;
                 amount = Math.Abs(amountRaw);
             }
             else

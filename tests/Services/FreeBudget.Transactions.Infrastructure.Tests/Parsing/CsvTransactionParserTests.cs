@@ -112,6 +112,38 @@ public class CsvTransactionParserTests
     }
 
     [Fact]
+    public async Task ParseAsync_applies_direction_mappings()
+    {
+        var layout = new ImportLayout
+        {
+            Name = "Mapped",
+            DateColumn = "Date",
+            DescriptionColumn = "Description",
+            AmountColumn = "Amount",
+            DirectionColumn = "Dir",
+            DirectionMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["IN"] = "Credit",
+                ["OUT"] = "Debit",
+            },
+            DateFormat = "yyyy-MM-dd",
+            DefaultCurrencyCode = "GBP",
+        };
+
+        var csv = """
+            Date,Amount,Description,Dir
+            2024-05-01,10.50,PAYMENT,OUT
+            2024-05-01,1500.00,SALARY,IN
+            """;
+
+        var parser = new CsvTransactionParser();
+        var result = await parser.ParseAsync(ToStream(csv), layout);
+
+        result[0].Direction.Should().Be("Debit");
+        result[1].Direction.Should().Be("Credit");
+    }
+
+    [Fact]
     public async Task ParseAsync_uses_default_currency_when_no_currency_column()
     {
         var csv = """

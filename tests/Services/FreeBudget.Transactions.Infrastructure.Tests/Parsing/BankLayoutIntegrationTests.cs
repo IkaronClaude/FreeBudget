@@ -52,21 +52,21 @@ public class BankLayoutIntegrationTests
             TRANSFER-12347,09-05-2024,50.00,EUR,Transfer to friend,,200.00,GBP,EUR,OUT
             """;
 
-        var layout = BankLayouts.Wise(UserId);
-        var adjustedLayout = layout with { DirectionColumn = "Direction" };
-
         var parser = new CsvTransactionParser();
-        var result = await parser.ParseAsync(ToStream(csv), adjustedLayout);
+        var result = await parser.ParseAsync(ToStream(csv), BankLayouts.Wise(UserId));
 
         result.Should().HaveCount(3);
 
         result[0].TransactionDate.Should().Be(new DateTime(2024, 5, 8));
         result[0].Amount.Should().Be(10.50m);
         result[0].CurrencyCode.Should().Be("GBP");
-        result[0].Direction.Should().Be("OUT");
+        result[0].Direction.Should().Be("Debit");
+
+        result[1].Direction.Should().Be("Credit");
 
         result[2].CurrencyCode.Should().Be("EUR");
         result[2].Amount.Should().Be(50.00m);
+        result[2].Direction.Should().Be("Debit");
     }
 
     [Fact]
@@ -112,6 +112,8 @@ public class BankLayoutIntegrationTests
         layout.AmountColumn.Should().Be("Amount");
         layout.CurrencyColumn.Should().Be("Currency");
         layout.DirectionColumn.Should().Be("Direction");
+        layout.DirectionMappings.Should().ContainKey("IN").WhoseValue.Should().Be("Credit");
+        layout.DirectionMappings.Should().ContainKey("OUT").WhoseValue.Should().Be("Debit");
         layout.DateFormat.Should().Be("dd-MM-yyyy");
         layout.DefaultCurrencyCode.Should().Be("GBP");
         layout.CreatedByUserId.Should().Be(UserId);

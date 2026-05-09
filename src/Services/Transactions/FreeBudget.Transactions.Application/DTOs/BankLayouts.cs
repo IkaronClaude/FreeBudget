@@ -23,6 +23,11 @@ public static class BankLayouts
         AmountColumn = "Amount",
         CurrencyColumn = "Currency",
         DirectionColumn = "Direction",
+        DirectionMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["IN"] = "Credit",
+            ["OUT"] = "Debit",
+        },
         DateFormat = "dd-MM-yyyy",
         DefaultCurrencyCode = "GBP",
         CreatedByUserId = createdByUserId,
