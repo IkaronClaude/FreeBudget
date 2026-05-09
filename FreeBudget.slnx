@@ -1,6 +1,24 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Categorization/">
+    <Project Path="src/Services/Categorization/FreeBudget.Categorization.Api/FreeBudget.Categorization.Api.csproj" />
+    <Project Path="src/Services/Categorization/FreeBudget.Categorization.Application/FreeBudget.Categorization.Application.csproj" />
+    <Project Path="src/Services/Categorization/FreeBudget.Categorization.Domain/FreeBudget.Categorization.Domain.csproj" />
+    <Project Path="src/Services/Categorization/FreeBudget.Categorization.Infrastructure/FreeBudget.Categorization.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Identity/">
+    <Project Path="src/Services/Identity/FreeBudget.Identity.Api/FreeBudget.Identity.Api.csproj" />
+    <Project Path="src/Services/Identity/FreeBudget.Identity.Application/FreeBudget.Identity.Application.csproj" />
+    <Project Path="src/Services/Identity/FreeBudget.Identity.Domain/FreeBudget.Identity.Domain.csproj" />
+    <Project Path="src/Services/Identity/FreeBudget.Identity.Infrastructure/FreeBudget.Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Ledger/">
+    <Project Path="src/Services/Ledger/FreeBudget.Ledger.Api/FreeBudget.Ledger.Api.csproj" />
+    <Project Path="src/Services/Ledger/FreeBudget.Ledger.Application/FreeBudget.Ledger.Application.csproj" />
+    <Project Path="src/Services/Ledger/FreeBudget.Ledger.Domain/FreeBudget.Ledger.Domain.csproj" />
+    <Project Path="src/Services/Ledger/FreeBudget.Ledger.Infrastructure/FreeBudget.Ledger.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Transactions/">
     <Project Path="src/Services/Transactions/FreeBudget.Transactions.Api/FreeBudget.Transactions.Api.csproj" />
     <Project Path="src/Services/Transactions/FreeBudget.Transactions.Application/FreeBudget.Transactions.Application.csproj" />
@@ -14,6 +32,12 @@
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Services/">
+    <Project Path="tests/Services/FreeBudget.Categorization.Application.Tests/FreeBudget.Categorization.Application.Tests.csproj" />
+    <Project Path="tests/Services/FreeBudget.Categorization.Domain.Tests/FreeBudget.Categorization.Domain.Tests.csproj" />
+    <Project Path="tests/Services/FreeBudget.Identity.Application.Tests/FreeBudget.Identity.Application.Tests.csproj" />
+    <Project Path="tests/Services/FreeBudget.Identity.Domain.Tests/FreeBudget.Identity.Domain.Tests.csproj" />
+    <Project Path="tests/Services/FreeBudget.Ledger.Application.Tests/FreeBudget.Ledger.Application.Tests.csproj" />
+    <Project Path="tests/Services/FreeBudget.Ledger.Domain.Tests/FreeBudget.Ledger.Domain.Tests.csproj" />
     <Project Path="tests/Services/FreeBudget.Transactions.Application.Tests/FreeBudget.Transactions.Application.Tests.csproj" />
     <Project Path="tests/Services/FreeBudget.Transactions.Domain.Tests/FreeBudget.Transactions.Domain.Tests.csproj" />
   </Folder>
