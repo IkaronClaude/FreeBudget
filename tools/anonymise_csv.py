@@ -102,13 +102,15 @@ def prompt_alias(real_value: str, label: str, used_aliases: set[str]) -> str | N
     print(f"\n  New {label}:")
     print(f"    \033[1m{real_value}\033[0m")
     while True:
-        choice = input("  Alias (! = keep, ~ = delete row): ").strip()
+        choice = input("  Alias (! = keep, !text = override cell, ~ = delete row): ").strip()
         if choice == "!":
             return None
         if choice == "~":
             return DELETE_SENTINEL
+        if choice.startswith("!"):
+            return OVERRIDE_PREFIX + choice[1:].strip()
         if not choice:
-            print("    Cannot be empty. Type ! to keep, ~ to delete row.")
+            print("    Cannot be empty. Type ! to keep, !text to override cell, ~ to delete row.")
             continue
         if choice in used_aliases:
             print(f"    '{choice}' is already taken. Pick another.")
@@ -144,6 +146,7 @@ PARTY_SPLIT = re.compile(r"^(.+?)( {2,}|\t)(.*)$")
 PARTY_PREFIX = re.compile(r"^(.+?)\*(.+)$")
 
 DELETE_SENTINEL = "\x00__DELETE__"
+OVERRIDE_PREFIX = "\x00__OVERRIDE__"
 
 
 def split_memo(memo: str) -> tuple[str, str]:
@@ -306,6 +309,8 @@ def main() -> None:
                 if alias == DELETE_SENTINEL:
                     delete_row = True
                     break
+                if alias.startswith(OVERRIDE_PREFIX):
+                    alias = alias[len(OVERRIDE_PREFIX):]
                 row[col] = alias
 
         if delete_row:
@@ -322,7 +327,10 @@ def main() -> None:
                     if anon == DELETE_SENTINEL:
                         delete_row = True
                         break
-                    row[col] = anon + tail if tail else anon
+                    if anon.startswith(OVERRIDE_PREFIX):
+                        row[col] = anon[len(OVERRIDE_PREFIX):]
+                    else:
+                        row[col] = anon + tail if tail else anon
 
         if delete_row:
             deleted += 1
@@ -335,6 +343,8 @@ def main() -> None:
                 if alias == DELETE_SENTINEL:
                     delete_row = True
                     break
+                if alias.startswith(OVERRIDE_PREFIX):
+                    alias = alias[len(OVERRIDE_PREFIX):]
                 row[col] = alias
 
         if delete_row:
