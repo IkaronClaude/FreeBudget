@@ -1,2 +1,10 @@
 <Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/FreeBudget.SharedKernel/FreeBudget.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Shared/">
+    <Project Path="tests/Shared/FreeBudget.SharedKernel.Tests/FreeBudget.SharedKernel.Tests.csproj" />
+  </Folder>
 </Solution>
