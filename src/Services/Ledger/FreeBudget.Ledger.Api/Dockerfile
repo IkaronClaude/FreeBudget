@@ -3,7 +3,7 @@ WORKDIR /src
 COPY src/ ./src/
 RUN find /src -type f ! -name '*.csproj' -delete && find /src -type d -empty -delete
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY ["Directory.Build.props", "Directory.Packages.props", "FreeBudget.slnx", "global.json", "./"]
@@ -16,7 +16,7 @@ COPY src/ src/
 RUN dotnet publish "src/Services/Ledger/FreeBudget.Ledger.Api/FreeBudget.Ledger.Api.csproj" \
     -c Release -o /app/publish --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
