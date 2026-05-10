@@ -15,9 +15,20 @@ internal sealed class LedgerEntryRepository(LedgerDbContext context) : ILedgerEn
             .OrderByDescending(e => e.EntryDate)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<LedgerEntry>> GetByTransactionIdAsync(Guid transactionId, CancellationToken cancellationToken = default)
+        => await context.LedgerEntries
+            .Where(e => e.TransactionId == transactionId)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(LedgerEntry entry, CancellationToken cancellationToken = default)
     {
         await context.LedgerEntries.AddAsync(entry, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task AddRangeAsync(IEnumerable<LedgerEntry> entries, CancellationToken cancellationToken = default)
+    {
+        await context.LedgerEntries.AddRangeAsync(entries, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
     }
 
