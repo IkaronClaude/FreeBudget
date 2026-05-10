@@ -2,6 +2,7 @@ using FluentAssertions;
 using FreeBudget.Transactions.Application.Interfaces;
 using FreeBudget.Transactions.Application.Queries;
 using FreeBudget.Transactions.Domain.Entities;
+using FreeBudget.SharedKernel.ValueObjects;
 using FreeBudget.Transactions.Domain.ValueObjects;
 using NSubstitute;
 

@@ -1,5 +1,6 @@
 using FreeBudget.Transactions.Application.DTOs;
 using FreeBudget.Transactions.Application.Interfaces;
+using FreeBudget.SharedKernel.ValueObjects;
 using FreeBudget.Transactions.Domain.ValueObjects;
 using MediatR;
 

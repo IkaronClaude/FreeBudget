@@ -4,15 +4,21 @@
 
 ## Task
 
-Add reporting/breakdown queries: totals by category and by time period for a bank account within a date range.
+Ledger domain entities + Move Money to SharedKernel. Tracks shared expenses and who owes whom.
 
 ## Branch
 
-feature/reporting-queries (merged to main)
+feature/ledger-domain (merged to main)
 
-## Next Up
+## Plan
 
-Core functional features (CSV import, categorization, reporting) are complete. Next priorities from TRACKER.md:
-- Define Ledger domain entities
-- Transaction split workflow
-- Transaction sharing rules
+- [x] Commit 1: Move Money value object to SharedKernel
+- [x] Commit 2: LedgerEntry entity + LedgerEntryType enum
+- [x] Commit 3: LedgerEntry tests
+- [x] Commit 4: Balance query DTO + repository interface + commands/queries
+- [x] Commit 5: Application tests (handlers + balance computation)
+- [x] Commit 6: EF Core config + repository + migration + API endpoints + tracker update
+
+## Progress
+
+All 6 commits complete. 283 tests passing. Ready for merge to main.

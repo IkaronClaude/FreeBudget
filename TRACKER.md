@@ -2,10 +2,8 @@
 
 ## Priority Tasks
 
-- [ ] Define Ledger domain entities (Split, LedgerEntry, MoneyOwedPot)
 - [ ] Implement transaction split workflow
 - [ ] Add auto-clear ledger debt via rules
-- [ ] Add reporting/graphing queries (income vs. expense by category, trends over time)
 - [ ] NatWest import parser (nice to have)
 - [ ] Transaction sharing rules (auto-share with groups via user-defined rules)
 - [ ] Persist ImportLayout to DB for user-editable custom layouts
@@ -38,6 +36,8 @@
 - [x] Python anonymise_csv.py tool for test data
 - [x] Categorization rules: Category field on Transaction, CategorizationRule entity, rule matcher, CRUD API, auto-categorize during import
 - [x] Reporting queries: category breakdown and period breakdown (day/week/month) with API endpoints
+- [x] Ledger domain: LedgerEntry entity, balance computation, commands/queries, EF Core persistence, API endpoints
+- [x] Move Money value object from Transactions.Domain to SharedKernel for cross-service use
 
 ## Bugs
 
@@ -45,7 +45,7 @@
 
 ## Notes
 
-- 258 total tests across 11 test projects
+- 283 total tests across 11 test projects
 - Default admin: admin@freebudget.local / "Admin" (seeded on first startup in dev mode)
 - Architecture: event queue for inter-service comms (deferred until cross-service flow needed)
 - Future: overnight bank feed auto-pull for connected accounts

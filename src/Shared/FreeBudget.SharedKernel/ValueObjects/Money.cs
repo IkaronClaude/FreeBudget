@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using FreeBudget.SharedKernel.Domain;
 
-namespace FreeBudget.Transactions.Domain.ValueObjects;
+namespace FreeBudget.SharedKernel.ValueObjects;
 
 public sealed partial class Money : ValueObject
 {

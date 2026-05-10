@@ -1,4 +1,6 @@
+using FreeBudget.Ledger.Application.Interfaces;
 using FreeBudget.Ledger.Infrastructure.Persistence;
+using FreeBudget.Ledger.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +15,8 @@ public static class DependencyInjection
     {
         services.AddDbContext<LedgerDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("LedgerDb")));
+
+        services.AddScoped<ILedgerEntryRepository, LedgerEntryRepository>();
 
         return services;
     }
