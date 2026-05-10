@@ -5,15 +5,29 @@ A multi-user accounting and budgeting application built with .NET 10 microservic
 ## Quick Start
 
 ```bash
-# Build
+# Build & test
 dotnet build
-
-# Test
 dotnet test
 
-# Run with Docker
+# Start the database (Postgres) for local dev
+docker compose up -d postgres
+
+# Run a service against local Postgres
+dotnet run --project src/Services/Identity/FreeBudget.Identity.Api
+
+# Or run the full stack in Docker
 docker compose up -d
 ```
+
+## Local development database
+
+`docker compose up -d postgres` starts Postgres 17 on port `5432` with:
+
+- User: `freebudget`
+- Password: `freebudget_dev`
+- Databases: `freebudget_identity`, `freebudget_transactions`, `freebudget_categorization`, `freebudget_ledger` (auto-created by `init-databases.sql`)
+
+The connection strings live in each service's `appsettings.Development.json` under `ConnectionStrings:<ServiceName>Db` and already point at this setup. EF migrations run automatically on first startup in dev mode.
 
 ## Services
 
