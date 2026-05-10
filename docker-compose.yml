@@ -95,10 +95,26 @@ services:
       - Services__Identity=http://identity-api:8080
       - Services__Transactions=http://transactions-api:8080
       - Services__Ledger=http://ledger-api:8080
+      - Cors__AllowedOrigins__0=http://localhost:5173
     depends_on:
       - identity-api
       - transactions-api
       - ledger-api
+
+  web-ui:
+    build:
+      context: ./src/Web/FreeBudget.Web.Ui
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_PROXY_TARGET=http://web-api:8080
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./src/Web/FreeBudget.Web.Ui:/app
+      - /app/node_modules
+    depends_on:
+      - web-api
 
 volumes:
   pgdata:

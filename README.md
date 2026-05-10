@@ -61,21 +61,28 @@ The connection strings live in each service's `appsettings.Development.json` und
 
 ## Web UI
 
+Easiest path — everything in Docker:
+
 ```bash
-# In one terminal: backend services + BFF
+docker compose up -d
+# UI: http://localhost:5173
+# BFF Swagger: http://localhost:5500/swagger
+```
+
+The Vue dev server (Vite) runs in the `web-ui` container with hot reload — edits to `src/Web/FreeBudget.Web.Ui/src` are picked up automatically.
+
+Or run locally without Docker:
+
+```bash
 docker compose up -d postgres
 dotnet run --project src/Services/Identity/FreeBudget.Identity.Api
 dotnet run --project src/Services/Transactions/FreeBudget.Transactions.Api
 dotnet run --project src/Services/Ledger/FreeBudget.Ledger.Api
 dotnet run --project src/Web/FreeBudget.Web.Api
-
-# In another terminal: Vue dev server
-cd src/Web/FreeBudget.Web.Ui
-npm install
-npm run dev
+cd src/Web/FreeBudget.Web.Ui && npm install && npm run dev
 ```
 
-Open `http://localhost:5173`. The seeded admin user is the implicit current user — no login.
+The seeded admin user is the implicit current user — no login.
 
 > On Windows PowerShell you may need to run npm via `npm.cmd` (or relax execution policy: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`).
 
