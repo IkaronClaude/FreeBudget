@@ -39,7 +39,11 @@ internal sealed class CsvTransactionParser : ICsvTransactionParser
             cancellationToken.ThrowIfCancellationRequested();
 
             var dateStr = csv.GetField(layout.DateColumn)!.Trim();
-            var date = DateTime.ParseExact(dateStr, layout.DateFormat, CultureInfo.InvariantCulture);
+            var date = DateTime.ParseExact(
+                dateStr,
+                layout.DateFormat,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
 
             var description = csv.GetField(layout.DescriptionColumn)!.Trim();
 
