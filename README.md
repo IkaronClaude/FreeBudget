@@ -43,7 +43,7 @@ The connection strings live in each service's `appsettings.Development.json` und
 
 `docker compose up -d pgadmin` (or just `docker compose up -d`) starts pgAdmin on `http://localhost:5050`.
 
-- Login: `admin@freebudget.local` / `admin`
+- Login: `admin@example.com` / `admin`
 - The "FreeBudget (local)" server is pre-configured. Password when prompted: `freebudget_dev`
 
 ## Services

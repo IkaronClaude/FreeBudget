@@ -5,6 +5,15 @@ namespace FreeBudget.Common.Infrastructure.Persistence;
 
 public abstract class BaseDbContext(DbContextOptions options) : DbContext(options)
 {
+    static BaseDbContext()
+    {
+        // Allow non-UTC DateTime values to be written to timestamptz columns.
+        // We write UtcNow / parsed-as-UTC dates intentionally, but third-party
+        // entry points (model binding, JSON deserialisation) can still produce
+        // Kind=Unspecified. This switch keeps Npgsql v5-and-earlier behaviour.
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
