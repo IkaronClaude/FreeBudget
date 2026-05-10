@@ -4,21 +4,19 @@
 
 ## Task
 
-Ledger domain entities + Move Money to SharedKernel. Tracks shared expenses and who owes whom.
+Transaction split workflow — split one transaction into multiple ledger entries.
 
 ## Branch
 
-feature/ledger-domain (merged to main)
+feature/transaction-split (merged to main)
 
 ## Plan
 
-- [x] Commit 1: Move Money value object to SharedKernel
-- [x] Commit 2: LedgerEntry entity + LedgerEntryType enum
-- [x] Commit 3: LedgerEntry tests
-- [x] Commit 4: Balance query DTO + repository interface + commands/queries
-- [x] Commit 5: Application tests (handlers + balance computation)
-- [x] Commit 6: EF Core config + repository + migration + API endpoints + tracker update
+- [x] Add AddRangeAsync and GetByTransactionIdAsync to ledger repository
+- [x] Add SplitTransactionCommand + handler + tests
+- [x] Add POST /api/ledger/splits endpoint
+- [x] Update tracker
 
 ## Progress
 
-All 6 commits complete. 283 tests passing. Ready for merge to main.
+All 3 commits complete. 292 tests passing. Ready for merge to main.

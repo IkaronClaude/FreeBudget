@@ -66,6 +66,24 @@ app.MapPost("/api/ledger/settlements", async (
     return Results.Created($"/api/ledger/{result.Value}", new { Id = result.Value });
 });
 
+app.MapPost("/api/ledger/splits", async (
+    SplitTransactionRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var command = new SplitTransactionCommand(
+        request.GroupId, request.PaidByUserId, request.TransactionId,
+        request.CurrencyCode, request.Description, request.EntryDate,
+        request.CreatedByUserId,
+        request.Participants.Select(p => new SplitParticipant(p.UserId, p.Amount)).ToList());
+    var result = await mediator.Send(command, ct);
+
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+
+    return Results.Created($"/api/ledger/transactions/{request.TransactionId}", new { EntryIds = result.Value });
+});
+
 app.MapDelete("/api/ledger/{id:guid}", async (
     Guid id,
     IMediator mediator,
@@ -126,3 +144,10 @@ record CreateSettlementRequest(
     Guid GroupId, Guid PaidByUserId, Guid OwedByUserId,
     decimal Amount, string CurrencyCode, string Description,
     DateTime EntryDate, Guid CreatedByUserId, Guid? TransactionId = null);
+
+record SplitTransactionRequest(
+    Guid GroupId, Guid PaidByUserId, Guid TransactionId,
+    string CurrencyCode, string Description, DateTime EntryDate,
+    Guid CreatedByUserId, IReadOnlyList<SplitParticipantRequest> Participants);
+
+record SplitParticipantRequest(Guid UserId, decimal Amount);
