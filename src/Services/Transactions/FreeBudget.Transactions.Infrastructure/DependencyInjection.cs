@@ -4,6 +4,7 @@ using FreeBudget.Transactions.Infrastructure.Parsing;
 using FreeBudget.Transactions.Infrastructure.Persistence;
 using FreeBudget.Transactions.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,8 +16,9 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<TransactionsDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("TransactionsDb")));
+        services.AddDbContext<TransactionsDbContext>(options => options
+            .UseNpgsql(configuration.GetConnectionString("TransactionsDb"))
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IImportBatchRepository, ImportBatchRepository>();

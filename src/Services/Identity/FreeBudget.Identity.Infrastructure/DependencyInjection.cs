@@ -2,6 +2,7 @@ using FreeBudget.Identity.Application.Interfaces;
 using FreeBudget.Identity.Infrastructure.Persistence;
 using FreeBudget.Identity.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,8 +14,9 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<IdentityDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("IdentityDb")));
+        services.AddDbContext<IdentityDbContext>(options => options
+            .UseNpgsql(configuration.GetConnectionString("IdentityDb"))
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IGroupRepository, GroupRepository>();
