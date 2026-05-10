@@ -25,6 +25,9 @@
     <Project Path="src/Services/Transactions/FreeBudget.Transactions.Domain/FreeBudget.Transactions.Domain.csproj" />
     <Project Path="src/Services/Transactions/FreeBudget.Transactions.Infrastructure/FreeBudget.Transactions.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Web/">
+    <Project Path="src/Web/FreeBudget.Web.Api/FreeBudget.Web.Api.csproj" />
+  </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/FreeBudget.Common.Contracts/FreeBudget.Common.Contracts.csproj" />
     <Project Path="src/Shared/FreeBudget.Common.Infrastructure/FreeBudget.Common.Infrastructure.csproj" />
