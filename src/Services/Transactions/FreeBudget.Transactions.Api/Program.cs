@@ -131,6 +131,17 @@ app.MapDelete("/api/categorization-rules/{id:guid}", async (
     return Results.NoContent();
 });
 
+app.MapGet("/api/transactions", async (
+    Guid bankAccountId,
+    DateTime? from,
+    DateTime? to,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new GetTransactionsByBankAccountQuery(bankAccountId, from, to), ct);
+    return Results.Ok(result);
+});
+
 app.MapGet("/api/reports/category-breakdown", async (
     Guid bankAccountId,
     DateTime from,
