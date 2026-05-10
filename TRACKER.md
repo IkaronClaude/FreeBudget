@@ -2,7 +2,6 @@
 
 ## Priority Tasks
 
-- [ ] Implement transaction split workflow
 - [ ] Add auto-clear ledger debt via rules
 - [ ] NatWest import parser (nice to have)
 - [ ] Transaction sharing rules (auto-share with groups via user-defined rules)
@@ -38,6 +37,7 @@
 - [x] Reporting queries: category breakdown and period breakdown (day/week/month) with API endpoints
 - [x] Ledger domain: LedgerEntry entity, balance computation, commands/queries, EF Core persistence, API endpoints
 - [x] Move Money value object from Transactions.Domain to SharedKernel for cross-service use
+- [x] Transaction split workflow: SplitTransactionCommand creates multiple ledger entries from one transaction with duplicate-split prevention
 
 ## Bugs
 
@@ -45,7 +45,7 @@
 
 ## Notes
 
-- 283 total tests across 11 test projects
+- 292 total tests across 11 test projects
 - Default admin: admin@freebudget.local / "Admin" (seeded on first startup in dev mode)
 - Architecture: event queue for inter-service comms (deferred until cross-service flow needed)
 - Future: overnight bank feed auto-pull for connected accounts

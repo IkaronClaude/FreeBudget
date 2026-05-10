@@ -6,6 +6,8 @@ public interface ILedgerEntryRepository
 {
     Task<LedgerEntry?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<LedgerEntry>> GetByGroupIdAsync(Guid groupId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<LedgerEntry>> GetByTransactionIdAsync(Guid transactionId, CancellationToken cancellationToken = default);
     Task AddAsync(LedgerEntry entry, CancellationToken cancellationToken = default);
+    Task AddRangeAsync(IEnumerable<LedgerEntry> entries, CancellationToken cancellationToken = default);
     Task DeleteAsync(LedgerEntry entry, CancellationToken cancellationToken = default);
 }
