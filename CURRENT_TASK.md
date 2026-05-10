@@ -4,12 +4,15 @@
 
 ## Task
 
-Add categorisation rules: Category field on Transaction, rule engine for auto-categorisation, CRUD endpoints.
+Add reporting/breakdown queries: totals by category and by time period for a bank account within a date range.
 
 ## Branch
 
-feature/categorization-rules (merged to main)
+feature/reporting-queries (merged to main)
 
 ## Next Up
 
-Reporting/breakdown queries by time frame and category
+Core functional features (CSV import, categorization, reporting) are complete. Next priorities from TRACKER.md:
+- Define Ledger domain entities
+- Transaction split workflow
+- Transaction sharing rules

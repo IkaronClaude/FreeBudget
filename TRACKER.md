@@ -2,7 +2,6 @@
 
 ## Priority Tasks
 
-- [ ] Add reporting/breakdown queries (by time frame and category)
 - [ ] Define Ledger domain entities (Split, LedgerEntry, MoneyOwedPot)
 - [ ] Implement transaction split workflow
 - [ ] Add auto-clear ledger debt via rules
@@ -38,6 +37,7 @@
 - [x] CSV import: POST /api/transactions/import endpoint
 - [x] Python anonymise_csv.py tool for test data
 - [x] Categorization rules: Category field on Transaction, CategorizationRule entity, rule matcher, CRUD API, auto-categorize during import
+- [x] Reporting queries: category breakdown and period breakdown (day/week/month) with API endpoints
 
 ## Bugs
 
@@ -45,7 +45,7 @@
 
 ## Notes
 
-- 247 total tests across 11 test projects
+- 258 total tests across 11 test projects
 - Default admin: admin@freebudget.local / "Admin" (seeded on first startup in dev mode)
 - Architecture: event queue for inter-service comms (deferred until cross-service flow needed)
 - Future: overnight bank feed auto-pull for connected accounts

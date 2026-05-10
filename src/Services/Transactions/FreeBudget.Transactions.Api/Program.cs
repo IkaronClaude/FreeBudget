@@ -131,6 +131,32 @@ app.MapDelete("/api/categorization-rules/{id:guid}", async (
     return Results.NoContent();
 });
 
+app.MapGet("/api/reports/category-breakdown", async (
+    Guid bankAccountId,
+    DateTime from,
+    DateTime to,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new GetCategoryBreakdownQuery(bankAccountId, from, to), ct);
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/reports/period-breakdown", async (
+    Guid bankAccountId,
+    DateTime from,
+    DateTime to,
+    string granularity,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    if (!Enum.TryParse<PeriodGranularity>(granularity, true, out var g))
+        return Results.BadRequest(new { Error = $"Invalid granularity: '{granularity}'. Supported: Day, Week, Month" });
+
+    var result = await mediator.Send(new GetPeriodBreakdownQuery(bankAccountId, from, to, g), ct);
+    return Results.Ok(result);
+});
+
 await app.RunAsync();
 
 record CreateRuleRequest(Guid UserId, string Pattern, string MatchType, string Category, int Priority = 0);

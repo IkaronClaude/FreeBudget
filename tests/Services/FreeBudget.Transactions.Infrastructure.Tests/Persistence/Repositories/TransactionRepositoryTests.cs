@@ -147,6 +147,64 @@ public class TransactionRepositoryTests
     }
 
     [Fact]
+    public async Task GetByBankAccountIdAndDateRangeAsync_filters_by_date_range()
+    {
+        var options = CreateOptions();
+        var bankAccountId = Guid.NewGuid();
+
+        await using (var context = new TransactionsDbContext(options))
+        {
+            var txns = new[]
+            {
+                Transaction.Create(bankAccountId, new DateTime(2024, 4, 30), "Before", new Money(10m, "GBP"), TransactionDirection.Debit),
+                Transaction.Create(bankAccountId, new DateTime(2024, 5, 1), "Start", new Money(20m, "GBP"), TransactionDirection.Debit),
+                Transaction.Create(bankAccountId, new DateTime(2024, 5, 15), "Mid", new Money(30m, "GBP"), TransactionDirection.Credit),
+                Transaction.Create(bankAccountId, new DateTime(2024, 5, 31), "End", new Money(40m, "GBP"), TransactionDirection.Debit),
+                Transaction.Create(bankAccountId, new DateTime(2024, 6, 1), "After", new Money(50m, "GBP"), TransactionDirection.Debit),
+            };
+            await context.Transactions.AddRangeAsync(txns);
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = new TransactionsDbContext(options))
+        {
+            var repo = new TransactionRepository(context);
+            var results = await repo.GetByBankAccountIdAndDateRangeAsync(
+                bankAccountId, new DateTime(2024, 5, 1), new DateTime(2024, 5, 31));
+
+            results.Should().HaveCount(3);
+            results[0].Description.Should().Be("Start");
+            results[1].Description.Should().Be("Mid");
+            results[2].Description.Should().Be("End");
+        }
+    }
+
+    [Fact]
+    public async Task GetByBankAccountIdAndDateRangeAsync_excludes_other_accounts()
+    {
+        var options = CreateOptions();
+        var bankAccountId = Guid.NewGuid();
+        var otherAccountId = Guid.NewGuid();
+
+        await using (var context = new TransactionsDbContext(options))
+        {
+            await context.Transactions.AddRangeAsync(
+                Transaction.Create(bankAccountId, new DateTime(2024, 5, 1), "Mine", new Money(10m, "GBP"), TransactionDirection.Debit),
+                Transaction.Create(otherAccountId, new DateTime(2024, 5, 1), "Other", new Money(20m, "GBP"), TransactionDirection.Debit));
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = new TransactionsDbContext(options))
+        {
+            var repo = new TransactionRepository(context);
+            var results = await repo.GetByBankAccountIdAndDateRangeAsync(
+                bankAccountId, new DateTime(2024, 5, 1), new DateTime(2024, 5, 31));
+
+            results.Should().ContainSingle().Which.Description.Should().Be("Mine");
+        }
+    }
+
+    [Fact]
     public async Task AddAsync_persists_transaction_with_running_balance()
     {
         var options = CreateOptions();
