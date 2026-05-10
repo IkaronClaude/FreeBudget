@@ -2,11 +2,11 @@
 
 ## Priority Tasks
 
-- [ ] Implement rule engine for transaction categorization
+- [ ] Add reporting/breakdown queries (by time frame and category)
 - [ ] Define Ledger domain entities (Split, LedgerEntry, MoneyOwedPot)
 - [ ] Implement transaction split workflow
 - [ ] Add auto-clear ledger debt via rules
-- [ ] Add reporting/graphing queries (income vs. expense by category, trends)
+- [ ] Add reporting/graphing queries (income vs. expense by category, trends over time)
 - [ ] NatWest import parser (nice to have)
 - [ ] Transaction sharing rules (auto-share with groups via user-defined rules)
 - [ ] Persist ImportLayout to DB for user-editable custom layouts
@@ -37,6 +37,7 @@
 - [x] CSV import: ImportCsv MediatR command handler with dedup support
 - [x] CSV import: POST /api/transactions/import endpoint
 - [x] Python anonymise_csv.py tool for test data
+- [x] Categorization rules: Category field on Transaction, CategorizationRule entity, rule matcher, CRUD API, auto-categorize during import
 
 ## Bugs
 
@@ -44,7 +45,7 @@
 
 ## Notes
 
-- 198 total tests across 11 test projects
+- 247 total tests across 11 test projects
 - Default admin: admin@freebudget.local / "Admin" (seeded on first startup in dev mode)
 - Architecture: event queue for inter-service comms (deferred until cross-service flow needed)
 - Future: overnight bank feed auto-pull for connected accounts

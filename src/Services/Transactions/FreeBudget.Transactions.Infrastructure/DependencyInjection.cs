@@ -1,4 +1,5 @@
 using FreeBudget.Transactions.Application.Interfaces;
+using FreeBudget.Transactions.Infrastructure.Categorization;
 using FreeBudget.Transactions.Infrastructure.Parsing;
 using FreeBudget.Transactions.Infrastructure.Persistence;
 using FreeBudget.Transactions.Infrastructure.Persistence.Repositories;
@@ -19,7 +20,9 @@ public static class DependencyInjection
 
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
+        services.AddScoped<ICategorizationRuleRepository, CategorizationRuleRepository>();
         services.AddSingleton<ICsvTransactionParser, CsvTransactionParser>();
+        services.AddSingleton<ICategorizer, RuleCategorizer>();
 
         return services;
     }

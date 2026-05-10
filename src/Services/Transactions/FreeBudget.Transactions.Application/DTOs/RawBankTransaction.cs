@@ -7,4 +7,5 @@ public sealed record RawBankTransaction(
     decimal Amount,
     string CurrencyCode,
     string Direction,
-    decimal? RunningBalance);
+    decimal? RunningBalance,
+    string? Category);

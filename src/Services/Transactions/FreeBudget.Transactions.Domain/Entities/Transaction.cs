@@ -16,6 +16,7 @@ public sealed class Transaction : AggregateRoot<Guid>, IAuditableEntity
     public Money? RunningBalance { get; private init; }
     public string? ExternalTransactionId { get; private init; }
     public Guid? ImportBatchId { get; private init; }
+    public string? Category { get; private set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ModifiedAt { get; set; }
 
@@ -27,7 +28,8 @@ public sealed class Transaction : AggregateRoot<Guid>, IAuditableEntity
         TransactionDirection direction,
         Money? runningBalance = null,
         string? externalTransactionId = null,
-        Guid? importBatchId = null)
+        Guid? importBatchId = null,
+        string? category = null)
     {
         if (bankAccountId == Guid.Empty)
             throw new ArgumentException("Bank account ID cannot be empty.", nameof(bankAccountId));
@@ -47,6 +49,7 @@ public sealed class Transaction : AggregateRoot<Guid>, IAuditableEntity
             RunningBalance = runningBalance,
             ExternalTransactionId = externalTransactionId?.Trim(),
             ImportBatchId = importBatchId,
+            Category = category?.Trim(),
         };
 
         transaction.RaiseDomainEvent(new TransactionImportedEvent(
@@ -62,5 +65,10 @@ public sealed class Transaction : AggregateRoot<Guid>, IAuditableEntity
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
         Description = description.Trim();
+    }
+
+    public void UpdateCategory(string? category)
+    {
+        Category = category?.Trim();
     }
 }
