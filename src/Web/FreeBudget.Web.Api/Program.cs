@@ -1,5 +1,6 @@
 using FreeBudget.Web.Api.Clients;
 using FreeBudget.Web.Api.CurrentUser;
+using FreeBudget.Web.Api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,5 +42,9 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Service = "Web.Api" }));
+
+app.MapMeEndpoints();
+app.MapTransactionsEndpoints();
+app.MapReportsEndpoints();
 
 await app.RunAsync();
