@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <InternalsVisibleTo Include="FreeBudget.Identity.Application.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MediatR" />
   </ItemGroup>
 
