@@ -1,18 +1,19 @@
-# syntax=docker/dockerfile:1.7
+FROM busybox AS csproj-source
+WORKDIR /src
+COPY src/ ./src/
+RUN find /src -type f ! -name '*.csproj' -delete && find /src -type d -empty -delete
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
 WORKDIR /src
 
-COPY ["Directory.Build.props", "."]
-COPY ["Directory.Packages.props", "."]
-COPY ["FreeBudget.slnx", "."]
-COPY ["global.json", "."]
-COPY ["src/", "src/"]
+COPY ["Directory.Build.props", "Directory.Packages.props", "FreeBudget.slnx", "global.json", "./"]
+COPY --from=csproj-source /src/src ./src
 
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet restore "src/Services/Identity/FreeBudget.Identity.Api/FreeBudget.Identity.Api.csproj"
+RUN dotnet restore "src/Services/Identity/FreeBudget.Identity.Api/FreeBudget.Identity.Api.csproj"
 
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet publish "src/Services/Identity/FreeBudget.Identity.Api/FreeBudget.Identity.Api.csproj" \
+COPY src/ src/
+
+RUN dotnet publish "src/Services/Identity/FreeBudget.Identity.Api/FreeBudget.Identity.Api.csproj" \
     -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
