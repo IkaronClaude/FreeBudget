@@ -29,6 +29,13 @@ docker compose up -d
 
 The connection strings live in each service's `appsettings.Development.json` under `ConnectionStrings:<ServiceName>Db` and already point at this setup. EF migrations run automatically on first startup in dev mode.
 
+## pgAdmin
+
+`docker compose up -d pgadmin` (or just `docker compose up -d`) starts pgAdmin on `http://localhost:5050`.
+
+- Login: `admin@freebudget.local` / `admin`
+- The "FreeBudget (local)" server is pre-configured. Password when prompted: `freebudget_dev`
+
 ## Services
 
 | Service | Port | Description |
