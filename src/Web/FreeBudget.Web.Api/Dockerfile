@@ -1,13 +1,19 @@
+# syntax=docker/dockerfile:1.7
 FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
 WORKDIR /src
 
 COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
 COPY ["FreeBudget.slnx", "."]
+COPY ["global.json", "."]
 COPY ["src/", "src/"]
 
-RUN dotnet restore "src/Web/FreeBudget.Web.Api/FreeBudget.Web.Api.csproj"
-RUN dotnet publish "src/Web/FreeBudget.Web.Api/FreeBudget.Web.Api.csproj" -c Release -o /app/publish --no-restore
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet restore "src/Web/FreeBudget.Web.Api/FreeBudget.Web.Api.csproj"
+
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet publish "src/Web/FreeBudget.Web.Api/FreeBudget.Web.Api.csproj" \
+    -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
 WORKDIR /app
