@@ -20,14 +20,36 @@ public static class TransactionsEndpoints
         });
 
         app.MapPost("/api/transactions/match-transfers", async (
+            Guid? groupId,
             ICurrentUserResolver currentUser,
             IdentityClient identity,
             TransactionsClient client,
+            LedgerClient ledger,
             CancellationToken ct) =>
         {
             var me = await currentUser.GetAsync(ct);
             var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
-            var payload = new { BankAccountIds = accounts.Select(a => a.Id).ToList(), DateToleranceDays = (int?)1 };
+
+            List<Guid>? restrictToTxnIds = null;
+            if (groupId is Guid g)
+            {
+                var idsResp = await ledger.Http.GetAsync($"/api/ledger/groups/{g}/shared-transaction-ids", ct);
+                if (idsResp.IsSuccessStatusCode)
+                {
+                    restrictToTxnIds = await idsResp.Content.ReadFromJsonAsync<List<Guid>>(cancellationToken: ct) ?? new();
+                }
+                else
+                {
+                    return Results.UnprocessableEntity(new { Error = "Failed to load group's shared transactions." });
+                }
+            }
+
+            var payload = new
+            {
+                BankAccountIds = accounts.Select(a => a.Id).ToList(),
+                RestrictToTransactionIds = restrictToTxnIds,
+                DateToleranceDays = (int?)1,
+            };
             var response = await client.Http.PostAsJsonAsync("/api/transactions/match-transfers", payload, ct);
             var content = await response.Content.ReadAsStringAsync(ct);
             return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);

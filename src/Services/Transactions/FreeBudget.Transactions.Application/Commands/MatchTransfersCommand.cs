@@ -7,6 +7,7 @@ namespace FreeBudget.Transactions.Application.Commands;
 
 public sealed record MatchTransfersCommand(
     IReadOnlyList<Guid> BankAccountIds,
+    IReadOnlyList<Guid>? RestrictToTransactionIds = null,
     int DateToleranceDays = 1) : IRequest<Result<MatchTransfersResult>>;
 
 public sealed record MatchTransfersResult(int Examined, int Matched, int AmbiguousSkipped);
@@ -24,6 +25,12 @@ internal sealed class MatchTransfersHandler(ITransactionRepository repository)
         {
             var txns = await repository.GetByBankAccountIdAsync(accountId, cancellationToken);
             all.AddRange(txns.Where(t => t.MatchedTransactionId is null));
+        }
+
+        if (request.RestrictToTransactionIds is { Count: > 0 } allowlist)
+        {
+            var allowedIds = allowlist.ToHashSet();
+            all = all.Where(t => allowedIds.Contains(t.Id)).ToList();
         }
 
         var examined = all.Count;

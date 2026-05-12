@@ -4,14 +4,14 @@ using MediatR;
 
 namespace FreeBudget.Identity.Application.Queries;
 
-public sealed record GetUserBankAccountsQuery(Guid UserId) : IRequest<IReadOnlyList<BankAccountDto>>;
+public sealed record GetGroupBankAccountsQuery(Guid GroupId) : IRequest<IReadOnlyList<BankAccountDto>>;
 
-internal sealed class GetUserBankAccountsHandler(IBankAccountRepository repository)
-    : IRequestHandler<GetUserBankAccountsQuery, IReadOnlyList<BankAccountDto>>
+internal sealed class GetGroupBankAccountsHandler(IBankAccountRepository repository)
+    : IRequestHandler<GetGroupBankAccountsQuery, IReadOnlyList<BankAccountDto>>
 {
-    public async Task<IReadOnlyList<BankAccountDto>> Handle(GetUserBankAccountsQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<BankAccountDto>> Handle(GetGroupBankAccountsQuery request, CancellationToken cancellationToken)
     {
-        var accounts = await repository.GetByOwnerUserIdAsync(request.UserId, cancellationToken);
+        var accounts = await repository.GetByGroupAccessAsync(request.GroupId, cancellationToken);
         return accounts
             .Select(a => new BankAccountDto(
                 a.Id,

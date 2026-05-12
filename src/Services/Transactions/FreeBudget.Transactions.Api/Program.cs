@@ -197,7 +197,7 @@ app.MapPost("/api/transactions/match-transfers", async (
     CancellationToken ct) =>
 {
     var result = await mediator.Send(
-        new MatchTransfersCommand(request.BankAccountIds, request.DateToleranceDays ?? 1), ct);
+        new MatchTransfersCommand(request.BankAccountIds, request.RestrictToTransactionIds, request.DateToleranceDays ?? 1), ct);
     if (result.IsFailure)
         return Results.UnprocessableEntity(new { result.Error });
     return Results.Ok(result.Value);
@@ -361,7 +361,7 @@ record CreateSharingRuleRequest(
 record UpdateSharingRuleRequest(
     string Pattern, string MatchType, string? EntryType, int Priority,
     Guid GroupId, Guid PaidByMemberId, IReadOnlyList<Guid> ParticipantMemberIds);
-record MatchTransfersRequest(IReadOnlyList<Guid> BankAccountIds, int? DateToleranceDays);
+record MatchTransfersRequest(IReadOnlyList<Guid> BankAccountIds, IReadOnlyList<Guid>? RestrictToTransactionIds, int? DateToleranceDays);
 record UpsertImportLayoutRequest(
     Guid CreatedByUserId,
     string Name,

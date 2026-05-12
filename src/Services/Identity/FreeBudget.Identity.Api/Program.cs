@@ -191,6 +191,39 @@ app.MapDelete("/api/bank-accounts/{id:guid}", async (
     return Results.NoContent();
 });
 
+app.MapPost("/api/bank-accounts/{id:guid}/access", async (
+    Guid id,
+    GrantAccessRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new GrantBankAccountAccessCommand(id, request.GroupId), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/bank-accounts/{id:guid}/access/{groupId:guid}", async (
+    Guid id,
+    Guid groupId,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new RevokeBankAccountAccessCommand(id, groupId), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
+app.MapGet("/api/groups/{id:guid}/bank-accounts", async (
+    Guid id,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var accounts = await mediator.Send(new GetGroupBankAccountsQuery(id), ct);
+    return Results.Ok(accounts);
+});
+
 await app.RunAsync();
 
 record CreateBankAccountRequest(Guid OwnerUserId, string BankType, string Nickname);
@@ -199,3 +232,4 @@ record CreateGroupRequest(string Name, Guid CreatedByUserId, string? CreatorLabe
 record RenameGroupRequest(string Name);
 record AddGroupMemberRequest(string Label, Guid? OwningUserId);
 record RenameGroupMemberRequest(string Label);
+record GrantAccessRequest(Guid GroupId);
