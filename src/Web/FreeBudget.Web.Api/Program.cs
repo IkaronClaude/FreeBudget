@@ -48,5 +48,6 @@ app.MapTransactionsEndpoints();
 app.MapReportsEndpoints();
 app.MapCategorizationRulesEndpoints();
 app.MapBankAccountsEndpoints();
+app.MapGroupsEndpoints();
 
 await app.RunAsync();

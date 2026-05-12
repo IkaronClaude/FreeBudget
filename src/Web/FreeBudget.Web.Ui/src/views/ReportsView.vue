@@ -28,7 +28,7 @@ watch(
   { immediate: true }
 );
 
-watch([selectedAccountId, tab, granularity, fromDate, toDate], () => loadReport());
+watch([selectedAccountId, tab, granularity, fromDate, toDate], () => loadReport(), { immediate: true });
 
 async function loadReport() {
   if (!selectedAccountId.value) return;
