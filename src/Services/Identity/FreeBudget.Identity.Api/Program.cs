@@ -84,6 +84,78 @@ app.MapGet("/api/users/{id:guid}/bank-accounts", async (
     return Results.Ok(accounts);
 });
 
+app.MapPost("/api/groups", async (
+    CreateGroupRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(
+        new CreateGroupCommand(request.Name, request.CreatedByUserId, request.CreatorLabel ?? "me"), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Created($"/api/groups/{result.Value!.Id}", result.Value);
+});
+
+app.MapPut("/api/groups/{id:guid}", async (
+    Guid id,
+    RenameGroupRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new RenameGroupCommand(id, request.Name), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/groups/{id:guid}", async (
+    Guid id,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new DeleteGroupCommand(id), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
+app.MapPost("/api/groups/{id:guid}/members", async (
+    Guid id,
+    AddGroupMemberRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new AddGroupMemberCommand(id, request.Label, request.OwningUserId), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Created($"/api/groups/{id}/members/{result.Value!.Id}", result.Value);
+});
+
+app.MapPut("/api/groups/{groupId:guid}/members/{memberId:guid}", async (
+    Guid groupId,
+    Guid memberId,
+    RenameGroupMemberRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new RenameGroupMemberCommand(groupId, memberId, request.Label), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/groups/{groupId:guid}/members/{memberId:guid}", async (
+    Guid groupId,
+    Guid memberId,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new RemoveGroupMemberCommand(groupId, memberId), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.NoContent();
+});
+
 app.MapPost("/api/bank-accounts", async (
     CreateBankAccountRequest request,
     IMediator mediator,
@@ -123,3 +195,7 @@ await app.RunAsync();
 
 record CreateBankAccountRequest(Guid OwnerUserId, string BankType, string Nickname);
 record RenameBankAccountRequest(string Nickname);
+record CreateGroupRequest(string Name, Guid CreatedByUserId, string? CreatorLabel);
+record RenameGroupRequest(string Name);
+record AddGroupMemberRequest(string Label, Guid? OwningUserId);
+record RenameGroupMemberRequest(string Label);

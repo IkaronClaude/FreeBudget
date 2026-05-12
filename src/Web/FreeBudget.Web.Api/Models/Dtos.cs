@@ -79,3 +79,8 @@ public sealed record UpdateCategoryDto(string? Category);
 
 public sealed record CreateBankAccountDto(string BankType, string Nickname);
 public sealed record RenameBankAccountDto(string Nickname);
+
+public sealed record CreateGroupDto(string Name, string? CreatorLabel);
+public sealed record RenameGroupDto(string Name);
+public sealed record AddGroupMemberDto(string Label, Guid? OwningUserId);
+public sealed record RenameGroupMemberDto(string Label);

@@ -36,7 +36,7 @@ watch(
 watch(selectedAccountId, async (id) => {
   if (!id) return;
   await loadTransactions();
-});
+}, { immediate: true });
 
 async function loadTransactions() {
   loading.value = true;
