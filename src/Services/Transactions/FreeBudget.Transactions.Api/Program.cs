@@ -66,6 +66,18 @@ app.MapPost("/api/transactions/import", async (
     });
 }).DisableAntiforgery();
 
+app.MapPost("/api/categorization-rules/apply", async (
+    ApplyRulesRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(
+        new ApplyRulesToTransactionsCommand(request.UserId, request.BankAccountIds), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Ok(result.Value);
+});
+
 app.MapGet("/api/categorization-rules", async (
     Guid userId,
     IMediator mediator,
@@ -185,3 +197,4 @@ await app.RunAsync();
 record CreateRuleRequest(Guid UserId, string Pattern, string MatchType, string Category, int Priority = 0);
 record UpdateRuleRequest(string Pattern, string MatchType, string Category, int Priority);
 record UpdateCategoryRequest(string? Category);
+record ApplyRulesRequest(Guid UserId, IReadOnlyList<Guid> BankAccountIds);

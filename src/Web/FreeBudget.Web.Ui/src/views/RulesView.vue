@@ -78,15 +78,45 @@ async function deleteRule(id: string) {
   }
 }
 
+const applying = ref(false);
+const applyMessage = ref<string | null>(null);
+
+async function applyToExisting() {
+  applying.value = true;
+  applyMessage.value = null;
+  error.value = null;
+  try {
+    const { data } = await api.post<{ examined: number; updated: number }>('/categorization-rules/apply');
+    applyMessage.value = `Examined ${data.examined} uncategorized transactions, categorized ${data.updated}.`;
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Apply failed';
+  } finally {
+    applying.value = false;
+  }
+}
+
 onMounted(load);
 </script>
 
 <template>
   <div class="space-y-6">
-    <h2 class="text-2xl font-semibold">Categorization rules</h2>
-    <p class="text-sm text-slate-600">
-      Rules run during CSV import (highest priority first) and set a category on any transaction whose description matches the pattern.
-    </p>
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-semibold">Categorization rules</h2>
+        <p class="text-sm text-slate-600 mt-1">
+          Rules run during CSV import (highest priority first) and set a category on any transaction whose description matches the pattern.
+        </p>
+      </div>
+      <button
+        @click="applyToExisting"
+        :disabled="applying || !rules.length"
+        class="bg-slate-800 text-white px-4 py-2 rounded disabled:bg-slate-300 whitespace-nowrap"
+        title="Run all rules against existing uncategorized transactions"
+      >
+        {{ applying ? 'Applying...' : 'Apply to uncategorized' }}
+      </button>
+    </div>
+    <p v-if="applyMessage" class="text-green-700 text-sm">{{ applyMessage }}</p>
 
     <section class="bg-white rounded border border-slate-200 p-4">
       <h3 class="font-medium mb-3">{{ editingId ? 'Edit rule' : 'New rule' }}</h3>

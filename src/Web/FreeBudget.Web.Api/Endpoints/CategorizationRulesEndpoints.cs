@@ -63,6 +63,20 @@ public static class CategorizationRulesEndpoints
                 : Results.StatusCode((int)response.StatusCode);
         });
 
+        app.MapPost("/api/categorization-rules/apply", async (
+            ICurrentUserResolver currentUser,
+            IdentityClient identity,
+            TransactionsClient client,
+            CancellationToken ct) =>
+        {
+            var me = await currentUser.GetAsync(ct);
+            var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
+            var payload = new { UserId = me.Id, BankAccountIds = accounts.Select(a => a.Id).ToList() };
+            var response = await client.Http.PostAsJsonAsync("/api/categorization-rules/apply", payload, ct);
+            var content = await response.Content.ReadAsStringAsync(ct);
+            return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);
+        });
+
         return app;
     }
 }
