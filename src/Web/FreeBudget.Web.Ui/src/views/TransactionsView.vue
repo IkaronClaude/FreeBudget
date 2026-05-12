@@ -4,6 +4,7 @@ import { useMeStore } from '../stores/me';
 import { api } from '../api/client';
 import type { TransactionListItem, RuleMatchType } from '../api/types';
 import ImportBuilder from '../components/ImportBuilder.vue';
+import SplitDialog from '../components/SplitDialog.vue';
 
 const me = useMeStore();
 
@@ -25,6 +26,7 @@ interface EditState {
   saving: boolean;
 }
 const editing = ref<EditState | null>(null);
+const sharingTxnId = ref<string | null>(null);
 
 const onlyUncategorized = ref(false);
 const visibleTransactions = computed(() =>
@@ -160,6 +162,7 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
             <th class="text-left px-4 py-2">Description</th>
             <th class="text-left px-4 py-2">Category</th>
             <th class="text-right px-4 py-2">Amount</th>
+            <th class="px-4 py-2 w-20"></th>
           </tr>
         </thead>
         <tbody>
@@ -180,9 +183,25 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
               <td class="px-4 py-2 text-right tabular-nums" :class="t.direction === 'Debit' ? 'text-red-700' : 'text-green-700'">
                 {{ signedAmount(t) }} {{ t.currencyCode }}
               </td>
+              <td class="px-4 py-2 text-right">
+                <button
+                  v-if="sharingTxnId !== t.id"
+                  @click="sharingTxnId = t.id"
+                  class="text-blue-600 hover:underline text-xs"
+                >Share</button>
+              </td>
+            </tr>
+            <tr v-if="sharingTxnId === t.id">
+              <td colspan="5" class="p-0">
+                <SplitDialog
+                  :transaction="t"
+                  @close="sharingTxnId = null"
+                  @created="sharingTxnId = null"
+                />
+              </td>
             </tr>
             <tr v-if="editing?.txnId === t.id" class="bg-blue-50 border-t border-blue-200">
-              <td colspan="4" class="px-4 py-3">
+              <td colspan="5" class="px-4 py-3">
                 <div class="grid gap-3 md:grid-cols-[1fr_auto_auto] items-end">
                   <label class="flex flex-col text-sm">
                     <span class="text-slate-600 mb-1">Category</span>

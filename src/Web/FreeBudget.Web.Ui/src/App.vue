@@ -19,6 +19,7 @@ onMounted(() => me.load());
           <RouterLink to="/rules" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Rules</RouterLink>
           <RouterLink to="/accounts" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Accounts</RouterLink>
           <RouterLink to="/groups" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Groups</RouterLink>
+          <RouterLink to="/ledger" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Ledger</RouterLink>
         </nav>
         <div class="ml-auto text-sm text-slate-500">
           <span v-if="me.user">{{ me.user.displayName }}</span>
