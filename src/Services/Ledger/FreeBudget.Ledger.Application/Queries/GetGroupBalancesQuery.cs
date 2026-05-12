@@ -7,12 +7,12 @@ using MediatR;
 namespace FreeBudget.Ledger.Application.Queries;
 
 public sealed record GetGroupBalancesQuery(Guid GroupId)
-    : IRequest<IReadOnlyList<UserBalance>>;
+    : IRequest<IReadOnlyList<MemberBalance>>;
 
 internal sealed class GetGroupBalancesHandler(ILedgerEntryRepository repository)
-    : IRequestHandler<GetGroupBalancesQuery, IReadOnlyList<UserBalance>>
+    : IRequestHandler<GetGroupBalancesQuery, IReadOnlyList<MemberBalance>>
 {
-    public async Task<IReadOnlyList<UserBalance>> Handle(
+    public async Task<IReadOnlyList<MemberBalance>> Handle(
         GetGroupBalancesQuery request,
         CancellationToken cancellationToken)
     {
@@ -27,13 +27,13 @@ internal sealed class GetGroupBalancesHandler(ILedgerEntryRepository repository)
         {
             if (entry.EntryType == LedgerEntryType.Expense)
             {
-                var key = (entry.OwedByUserId, entry.PaidByUserId);
+                var key = (entry.OwedByMemberId, entry.PaidByMemberId);
                 debts.TryGetValue(key, out var current);
                 debts[key] = current + entry.Amount.Amount;
             }
             else
             {
-                var key = (entry.PaidByUserId, entry.OwedByUserId);
+                var key = (entry.PaidByMemberId, entry.OwedByMemberId);
                 debts.TryGetValue(key, out var current);
                 debts[key] = current - entry.Amount.Amount;
             }
@@ -61,15 +61,15 @@ internal sealed class GetGroupBalancesHandler(ILedgerEntryRepository repository)
         }
 
         var currency = entries[0].Amount.CurrencyCode;
-        var balances = new List<UserBalance>();
+        var balances = new List<MemberBalance>();
 
-        foreach (var ((userA, userB), net) in netDebts)
+        foreach (var ((memberA, memberB), net) in netDebts)
         {
             if (net == 0) continue;
 
             balances.Add(net > 0
-                ? new UserBalance(userA, userB, new Money(net, currency))
-                : new UserBalance(userB, userA, new Money(-net, currency)));
+                ? new MemberBalance(memberA, memberB, new Money(net, currency))
+                : new MemberBalance(memberB, memberA, new Money(-net, currency)));
         }
 
         return balances;

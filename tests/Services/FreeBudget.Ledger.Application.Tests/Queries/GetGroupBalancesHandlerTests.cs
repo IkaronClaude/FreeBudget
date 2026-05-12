@@ -13,9 +13,9 @@ public class GetGroupBalancesHandlerTests
     private readonly GetGroupBalancesHandler _handler;
 
     private static readonly Guid GroupId = Guid.NewGuid();
-    private static readonly Guid UserA = Guid.NewGuid();
-    private static readonly Guid UserB = Guid.NewGuid();
-    private static readonly Guid UserC = Guid.NewGuid();
+    private static readonly Guid MemberA = Guid.NewGuid();
+    private static readonly Guid MemberB = Guid.NewGuid();
+    private static readonly Guid MemberC = Guid.NewGuid();
     private static readonly Guid Creator = Guid.NewGuid();
     private static readonly DateTime Date = new(2024, 5, 15);
 
@@ -40,7 +40,7 @@ public class GetGroupBalancesHandlerTests
     {
         var entries = new List<LedgerEntry>
         {
-            LedgerEntry.CreateExpense(GroupId, UserA, UserB, new Money(50m, "GBP"), "Dinner", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberA, MemberB, new Money(50m, "GBP"), "Dinner", Date, Creator),
         };
         _repo.GetByGroupIdAsync(GroupId, Arg.Any<CancellationToken>()).Returns(entries);
 
@@ -48,8 +48,8 @@ public class GetGroupBalancesHandlerTests
 
         result.Should().ContainSingle();
         var balance = result[0];
-        balance.UserId.Should().Be(UserB);
-        balance.OwesToUserId.Should().Be(UserA);
+        balance.MemberId.Should().Be(MemberB);
+        balance.OwesToMemberId.Should().Be(MemberA);
         balance.NetAmount.Amount.Should().Be(50m);
     }
 
@@ -58,8 +58,8 @@ public class GetGroupBalancesHandlerTests
     {
         var entries = new List<LedgerEntry>
         {
-            LedgerEntry.CreateExpense(GroupId, UserA, UserB, new Money(30m, "GBP"), "Lunch", Date, Creator),
-            LedgerEntry.CreateExpense(GroupId, UserA, UserB, new Money(20m, "GBP"), "Coffee", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberA, MemberB, new Money(30m, "GBP"), "Lunch", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberA, MemberB, new Money(20m, "GBP"), "Coffee", Date, Creator),
         };
         _repo.GetByGroupIdAsync(GroupId, Arg.Any<CancellationToken>()).Returns(entries);
 
@@ -74,16 +74,16 @@ public class GetGroupBalancesHandlerTests
     {
         var entries = new List<LedgerEntry>
         {
-            LedgerEntry.CreateExpense(GroupId, UserA, UserB, new Money(50m, "GBP"), "Dinner", Date, Creator),
-            LedgerEntry.CreateSettlement(GroupId, UserB, UserA, new Money(20m, "GBP"), "Partial payback", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberA, MemberB, new Money(50m, "GBP"), "Dinner", Date, Creator),
+            LedgerEntry.CreateSettlement(GroupId, MemberB, MemberA, new Money(20m, "GBP"), "Partial payback", Date, Creator),
         };
         _repo.GetByGroupIdAsync(GroupId, Arg.Any<CancellationToken>()).Returns(entries);
 
         var result = await _handler.Handle(new GetGroupBalancesQuery(GroupId), CancellationToken.None);
 
         result.Should().ContainSingle();
-        result[0].UserId.Should().Be(UserB);
-        result[0].OwesToUserId.Should().Be(UserA);
+        result[0].MemberId.Should().Be(MemberB);
+        result[0].OwesToMemberId.Should().Be(MemberA);
         result[0].NetAmount.Amount.Should().Be(30m);
     }
 
@@ -92,8 +92,8 @@ public class GetGroupBalancesHandlerTests
     {
         var entries = new List<LedgerEntry>
         {
-            LedgerEntry.CreateExpense(GroupId, UserA, UserB, new Money(50m, "GBP"), "Dinner", Date, Creator),
-            LedgerEntry.CreateSettlement(GroupId, UserB, UserA, new Money(50m, "GBP"), "Full payback", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberA, MemberB, new Money(50m, "GBP"), "Dinner", Date, Creator),
+            LedgerEntry.CreateSettlement(GroupId, MemberB, MemberA, new Money(50m, "GBP"), "Full payback", Date, Creator),
         };
         _repo.GetByGroupIdAsync(GroupId, Arg.Any<CancellationToken>()).Returns(entries);
 
@@ -107,16 +107,16 @@ public class GetGroupBalancesHandlerTests
     {
         var entries = new List<LedgerEntry>
         {
-            LedgerEntry.CreateExpense(GroupId, UserA, UserB, new Money(30m, "GBP"), "Lunch", Date, Creator),
-            LedgerEntry.CreateExpense(GroupId, UserB, UserA, new Money(20m, "GBP"), "Coffee", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberA, MemberB, new Money(30m, "GBP"), "Lunch", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberB, MemberA, new Money(20m, "GBP"), "Coffee", Date, Creator),
         };
         _repo.GetByGroupIdAsync(GroupId, Arg.Any<CancellationToken>()).Returns(entries);
 
         var result = await _handler.Handle(new GetGroupBalancesQuery(GroupId), CancellationToken.None);
 
         result.Should().ContainSingle();
-        result[0].UserId.Should().Be(UserB);
-        result[0].OwesToUserId.Should().Be(UserA);
+        result[0].MemberId.Should().Be(MemberB);
+        result[0].OwesToMemberId.Should().Be(MemberA);
         result[0].NetAmount.Amount.Should().Be(10m);
     }
 
@@ -125,15 +125,15 @@ public class GetGroupBalancesHandlerTests
     {
         var entries = new List<LedgerEntry>
         {
-            LedgerEntry.CreateExpense(GroupId, UserA, UserB, new Money(30m, "GBP"), "Lunch", Date, Creator),
-            LedgerEntry.CreateExpense(GroupId, UserA, UserC, new Money(20m, "GBP"), "Coffee", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberA, MemberB, new Money(30m, "GBP"), "Lunch", Date, Creator),
+            LedgerEntry.CreateExpense(GroupId, MemberA, MemberC, new Money(20m, "GBP"), "Coffee", Date, Creator),
         };
         _repo.GetByGroupIdAsync(GroupId, Arg.Any<CancellationToken>()).Returns(entries);
 
         var result = await _handler.Handle(new GetGroupBalancesQuery(GroupId), CancellationToken.None);
 
         result.Should().HaveCount(2);
-        result.Should().Contain(b => b.UserId == UserB && b.OwesToUserId == UserA && b.NetAmount.Amount == 30m);
-        result.Should().Contain(b => b.UserId == UserC && b.OwesToUserId == UserA && b.NetAmount.Amount == 20m);
+        result.Should().Contain(b => b.MemberId == MemberB && b.OwesToMemberId == MemberA && b.NetAmount.Amount == 30m);
+        result.Should().Contain(b => b.MemberId == MemberC && b.OwesToMemberId == MemberA && b.NetAmount.Amount == 20m);
     }
 }

@@ -10,8 +10,8 @@ public sealed class LedgerEntry : AggregateRoot<Guid>, IAuditableEntity
     private LedgerEntry() { }
 
     public Guid GroupId { get; private init; }
-    public Guid PaidByUserId { get; private init; }
-    public Guid OwedByUserId { get; private init; }
+    public Guid PaidByMemberId { get; private init; }
+    public Guid OwedByMemberId { get; private init; }
     public Money Amount { get; private init; } = null!;
     public string Description { get; private set; } = null!;
     public LedgerEntryType EntryType { get; private init; }
@@ -23,29 +23,29 @@ public sealed class LedgerEntry : AggregateRoot<Guid>, IAuditableEntity
 
     public static LedgerEntry CreateExpense(
         Guid groupId,
-        Guid paidByUserId,
-        Guid owedByUserId,
+        Guid paidByMemberId,
+        Guid owedByMemberId,
         Money amount,
         string description,
         DateTime entryDate,
         Guid createdByUserId,
         Guid? transactionId = null)
     {
-        return Create(groupId, paidByUserId, owedByUserId, amount, description,
+        return Create(groupId, paidByMemberId, owedByMemberId, amount, description,
             LedgerEntryType.Expense, entryDate, createdByUserId, transactionId);
     }
 
     public static LedgerEntry CreateSettlement(
         Guid groupId,
-        Guid paidByUserId,
-        Guid owedByUserId,
+        Guid paidByMemberId,
+        Guid owedByMemberId,
         Money amount,
         string description,
         DateTime entryDate,
         Guid createdByUserId,
         Guid? transactionId = null)
     {
-        return Create(groupId, paidByUserId, owedByUserId, amount, description,
+        return Create(groupId, paidByMemberId, owedByMemberId, amount, description,
             LedgerEntryType.Settlement, entryDate, createdByUserId, transactionId);
     }
 
@@ -59,8 +59,8 @@ public sealed class LedgerEntry : AggregateRoot<Guid>, IAuditableEntity
 
     private static LedgerEntry Create(
         Guid groupId,
-        Guid paidByUserId,
-        Guid owedByUserId,
+        Guid paidByMemberId,
+        Guid owedByMemberId,
         Money amount,
         string description,
         LedgerEntryType entryType,
@@ -70,12 +70,12 @@ public sealed class LedgerEntry : AggregateRoot<Guid>, IAuditableEntity
     {
         if (groupId == Guid.Empty)
             throw new ArgumentException("Group ID cannot be empty.", nameof(groupId));
-        if (paidByUserId == Guid.Empty)
-            throw new ArgumentException("PaidBy user ID cannot be empty.", nameof(paidByUserId));
-        if (owedByUserId == Guid.Empty)
-            throw new ArgumentException("OwedBy user ID cannot be empty.", nameof(owedByUserId));
-        if (paidByUserId == owedByUserId)
-            throw new ArgumentException("Cannot create a ledger entry where a user owes themselves.");
+        if (paidByMemberId == Guid.Empty)
+            throw new ArgumentException("PaidBy member ID cannot be empty.", nameof(paidByMemberId));
+        if (owedByMemberId == Guid.Empty)
+            throw new ArgumentException("OwedBy member ID cannot be empty.", nameof(owedByMemberId));
+        if (paidByMemberId == owedByMemberId)
+            throw new ArgumentException("Cannot create a ledger entry where a member owes themselves.");
         ArgumentNullException.ThrowIfNull(amount);
         if (amount.Amount <= 0)
             throw new ArgumentException("Amount must be positive.", nameof(amount));
@@ -87,8 +87,8 @@ public sealed class LedgerEntry : AggregateRoot<Guid>, IAuditableEntity
         {
             Id = Guid.NewGuid(),
             GroupId = groupId,
-            PaidByUserId = paidByUserId,
-            OwedByUserId = owedByUserId,
+            PaidByMemberId = paidByMemberId,
+            OwedByMemberId = owedByMemberId,
             Amount = amount,
             Description = description.Trim(),
             EntryType = entryType,
@@ -100,8 +100,8 @@ public sealed class LedgerEntry : AggregateRoot<Guid>, IAuditableEntity
         entry.RaiseDomainEvent(new LedgerEntryCreatedEvent(
             entry.Id,
             groupId,
-            paidByUserId,
-            owedByUserId,
+            paidByMemberId,
+            owedByMemberId,
             amount.Amount,
             amount.CurrencyCode,
             entryType));

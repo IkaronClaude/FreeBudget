@@ -6,8 +6,8 @@ namespace FreeBudget.Ledger.Domain.Events;
 public sealed record LedgerEntryCreatedEvent(
     Guid EntryId,
     Guid GroupId,
-    Guid PaidByUserId,
-    Guid OwedByUserId,
+    Guid PaidByMemberId,
+    Guid OwedByMemberId,
     decimal Amount,
     string CurrencyCode,
     LedgerEntryType EntryType) : DomainEvent;

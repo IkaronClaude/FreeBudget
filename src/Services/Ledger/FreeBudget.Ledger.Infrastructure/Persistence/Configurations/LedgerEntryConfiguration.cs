@@ -20,14 +20,14 @@ internal sealed class LedgerEntryConfiguration : IEntityTypeConfiguration<Ledger
 
         builder.HasIndex(e => e.GroupId);
 
-        builder.Property(e => e.PaidByUserId)
-            .HasColumnName("paid_by_user_id")
+        builder.Property(e => e.PaidByMemberId)
+            .HasColumnName("paid_by_member_id")
             .IsRequired();
 
-        builder.HasIndex(e => e.PaidByUserId);
+        builder.HasIndex(e => e.PaidByMemberId);
 
-        builder.Property(e => e.OwedByUserId)
-            .HasColumnName("owed_by_user_id")
+        builder.Property(e => e.OwedByMemberId)
+            .HasColumnName("owed_by_member_id")
             .IsRequired();
 
         builder.OwnsOne(e => e.Amount, money =>

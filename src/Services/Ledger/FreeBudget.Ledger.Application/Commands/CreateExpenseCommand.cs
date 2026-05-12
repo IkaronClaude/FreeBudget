@@ -5,8 +5,8 @@ namespace FreeBudget.Ledger.Application.Commands;
 
 public sealed record CreateExpenseCommand(
     Guid GroupId,
-    Guid PaidByUserId,
-    Guid OwedByUserId,
+    Guid PaidByMemberId,
+    Guid OwedByMemberId,
     decimal Amount,
     string CurrencyCode,
     string Description,
