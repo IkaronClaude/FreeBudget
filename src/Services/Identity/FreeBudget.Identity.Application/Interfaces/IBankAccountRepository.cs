@@ -9,4 +9,5 @@ public interface IBankAccountRepository
     Task<IReadOnlyList<BankAccount>> GetByGroupAccessAsync(Guid groupId, CancellationToken cancellationToken = default);
     Task AddAsync(BankAccount bankAccount, CancellationToken cancellationToken = default);
     Task UpdateAsync(BankAccount bankAccount, CancellationToken cancellationToken = default);
+    Task DeleteAsync(BankAccount bankAccount, CancellationToken cancellationToken = default);
 }

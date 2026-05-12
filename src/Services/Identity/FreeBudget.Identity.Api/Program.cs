@@ -1,5 +1,6 @@
 using FreeBudget.Common.Infrastructure.Middleware;
 using FreeBudget.Identity.Application;
+using FreeBudget.Identity.Application.Commands;
 using FreeBudget.Identity.Application.Queries;
 using FreeBudget.Identity.Domain.Entities;
 using FreeBudget.Identity.Domain.ValueObjects;
@@ -83,4 +84,42 @@ app.MapGet("/api/users/{id:guid}/bank-accounts", async (
     return Results.Ok(accounts);
 });
 
+app.MapPost("/api/bank-accounts", async (
+    CreateBankAccountRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(
+        new CreateBankAccountCommand(request.OwnerUserId, request.BankType, request.Nickname), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Created($"/api/bank-accounts/{result.Value!.Id}", result.Value);
+});
+
+app.MapPut("/api/bank-accounts/{id:guid}", async (
+    Guid id,
+    RenameBankAccountRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new RenameBankAccountCommand(id, request.Nickname), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/bank-accounts/{id:guid}", async (
+    Guid id,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new DeleteBankAccountCommand(id), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
 await app.RunAsync();
+
+record CreateBankAccountRequest(Guid OwnerUserId, string BankType, string Nickname);
+record RenameBankAccountRequest(string Nickname);
