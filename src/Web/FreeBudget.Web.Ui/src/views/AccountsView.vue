@@ -7,15 +7,17 @@ import type { BankAccount } from '../api/types';
 const me = useMeStore();
 const error = ref<string | null>(null);
 
+type BankTypeName = 'Barclays' | 'Wise' | 'NatWest' | 'Manual';
+
 const newAccount = reactive({
-  bankType: 'Barclays' as 'Barclays' | 'Wise' | 'NatWest',
+  bankType: 'Barclays' as BankTypeName,
   nickname: '',
   saving: false,
 });
 
 const renaming = ref<{ id: string; nickname: string } | null>(null);
 
-const bankTypes: Array<'Barclays' | 'Wise' | 'NatWest'> = ['Barclays', 'Wise', 'NatWest'];
+const bankTypes: BankTypeName[] = ['Barclays', 'Wise', 'NatWest', 'Manual'];
 
 async function refresh() {
   await me.refresh();

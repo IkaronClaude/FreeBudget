@@ -1,19 +1,20 @@
 <script setup lang="ts">
-import { ref, watch, reactive } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useMeStore } from '../stores/me';
 import { api } from '../api/client';
-import type { TransactionListItem, ImportCsvResponse, RuleMatchType } from '../api/types';
+import type { TransactionListItem, RuleMatchType } from '../api/types';
+import ImportBuilder from '../components/ImportBuilder.vue';
 
 const me = useMeStore();
 
 const selectedAccountId = ref<string>('');
-const layout = ref<'barclays' | 'wise'>('barclays');
-const file = ref<File | null>(null);
 const transactions = ref<TransactionListItem[]>([]);
 const loading = ref(false);
-const importing = ref(false);
-const message = ref<string | null>(null);
 const error = ref<string | null>(null);
+
+const selectedAccount = computed(() =>
+  me.bankAccounts.find(a => a.id === selectedAccountId.value) ?? null
+);
 
 interface EditState {
   txnId: string;
@@ -24,6 +25,16 @@ interface EditState {
   saving: boolean;
 }
 const editing = ref<EditState | null>(null);
+
+const onlyUncategorized = ref(false);
+const visibleTransactions = computed(() =>
+  onlyUncategorized.value
+    ? transactions.value.filter(t => !t.category)
+    : transactions.value
+);
+const uncategorizedCount = computed(() =>
+  transactions.value.filter(t => !t.category).length
+);
 
 watch(
   () => me.bankAccounts,
@@ -50,32 +61,6 @@ async function loadTransactions() {
     error.value = e instanceof Error ? e.message : 'Failed to load transactions';
   } finally {
     loading.value = false;
-  }
-}
-
-function onFileChange(event: Event) {
-  const target = event.target as HTMLInputElement;
-  file.value = target.files?.[0] ?? null;
-}
-
-async function importCsv() {
-  if (!file.value || !selectedAccountId.value) return;
-  importing.value = true;
-  message.value = null;
-  error.value = null;
-  try {
-    const form = new FormData();
-    form.append('file', file.value);
-    const { data } = await api.post<ImportCsvResponse>('/transactions/import', form, {
-      params: { bankAccountId: selectedAccountId.value, layout: layout.value },
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    message.value = `Imported ${data.transactionCount} transactions, skipped ${data.skippedDuplicates} duplicates.`;
-    await loadTransactions();
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Import failed';
-  } finally {
-    importing.value = false;
   }
 }
 
@@ -136,42 +121,39 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
   <div class="space-y-6">
     <h2 class="text-2xl font-semibold">Transactions</h2>
 
-    <section class="bg-white rounded border border-slate-200 p-4 space-y-4">
-      <div class="flex flex-wrap gap-3 items-end">
-        <label class="flex flex-col text-sm">
-          <span class="text-slate-600 mb-1">Bank account</span>
-          <select v-model="selectedAccountId" class="border border-slate-300 rounded px-3 py-2 min-w-[14rem]">
-            <option v-for="a in me.bankAccounts" :key="a.id" :value="a.id">
-              {{ a.nickname }} ({{ a.bankType }})
-            </option>
-          </select>
-        </label>
-        <label class="flex flex-col text-sm">
-          <span class="text-slate-600 mb-1">CSV layout</span>
-          <select v-model="layout" class="border border-slate-300 rounded px-3 py-2">
-            <option value="barclays">Barclays</option>
-            <option value="wise">Wise</option>
-          </select>
-        </label>
-        <label class="flex flex-col text-sm">
-          <span class="text-slate-600 mb-1">CSV file</span>
-          <input type="file" accept=".csv" @change="onFileChange" class="text-sm" />
-        </label>
-        <button
-          @click="importCsv"
-          :disabled="!file || !selectedAccountId || importing"
-          class="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-slate-300"
-        >
-          {{ importing ? 'Importing...' : 'Import CSV' }}
-        </button>
-      </div>
-      <p v-if="message" class="text-green-700 text-sm">{{ message }}</p>
-      <p v-if="error" class="text-red-600 text-sm">{{ error }}</p>
+    <section class="bg-white rounded border border-slate-200 p-4">
+      <label class="flex flex-col text-sm max-w-md">
+        <span class="text-slate-600 mb-1">Bank account</span>
+        <select v-model="selectedAccountId" class="border border-slate-300 rounded px-3 py-2">
+          <option v-for="a in me.bankAccounts" :key="a.id" :value="a.id">
+            {{ a.nickname }} ({{ a.bankType }})
+          </option>
+        </select>
+      </label>
+      <p v-if="error" class="text-red-600 text-sm mt-2">{{ error }}</p>
     </section>
+
+    <ImportBuilder
+      v-if="selectedAccount"
+      :key="selectedAccount.id"
+      :bank-account-id="selectedAccount.id"
+      :bank-type="selectedAccount.bankType"
+      @imported="loadTransactions"
+    />
+
+    <div class="flex items-center justify-between text-sm">
+      <label class="flex items-center gap-2">
+        <input v-model="onlyUncategorized" type="checkbox" />
+        <span>Show only uncategorized</span>
+      </label>
+      <span class="text-slate-500">
+        {{ uncategorizedCount }} uncategorized of {{ transactions.length }}
+      </span>
+    </div>
 
     <section class="bg-white rounded border border-slate-200 overflow-hidden">
       <div v-if="loading" class="p-4 text-slate-500">Loading...</div>
-      <table v-else-if="transactions.length" class="w-full text-sm">
+      <table v-else-if="visibleTransactions.length" class="w-full text-sm">
         <thead class="bg-slate-50 text-slate-600">
           <tr>
             <th class="text-left px-4 py-2">Date</th>
@@ -181,7 +163,7 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
           </tr>
         </thead>
         <tbody>
-          <template v-for="t in transactions" :key="t.id">
+          <template v-for="t in visibleTransactions" :key="t.id">
             <tr class="border-t border-slate-100">
               <td class="px-4 py-2 whitespace-nowrap">{{ new Date(t.transactionDate).toLocaleDateString() }}</td>
               <td class="px-4 py-2">{{ t.description }}</td>
@@ -252,7 +234,9 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
           </template>
         </tbody>
       </table>
-      <div v-else class="p-4 text-slate-500">No transactions for this account.</div>
+      <div v-else class="p-4 text-slate-500">
+        {{ onlyUncategorized && transactions.length ? 'Nothing uncategorized here.' : 'No transactions for this account.' }}
+      </div>
     </section>
   </div>
 </template>
