@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useMeStore } from '../stores/me';
 import { api } from '../api/client';
-import type { SharingRule, RuleMatchType, Group, GroupMember } from '../api/types';
+import type { SharingRule, RuleMatchType, LedgerEntryKind, Group, GroupMember } from '../api/types';
 
 const me = useMeStore();
 const rules = ref<SharingRule[]>([]);
@@ -12,19 +12,23 @@ const error = ref<string | null>(null);
 interface RuleForm {
   pattern: string;
   matchType: RuleMatchType;
+  entryType: LedgerEntryKind;
   priority: number;
   groupId: string;
   paidByMemberId: string;
   participantMemberIds: string[];
+  settlementRecipientId: string;
 }
 
 const form = reactive<RuleForm>({
   pattern: '',
   matchType: 'Contains',
+  entryType: 'Expense',
   priority: 0,
   groupId: '',
   paidByMemberId: '',
   participantMemberIds: [],
+  settlementRecipientId: '',
 });
 const editingId = ref<string | null>(null);
 const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWith'];
@@ -44,11 +48,11 @@ function findMember(groupId: string, memberId: string): GroupMember | null {
 }
 
 watch(() => form.groupId, () => {
-  // When group changes, reset payer + participants to sensible defaults
   if (!formGroup.value) return;
   const meMember = formGroup.value.members.find(m => m.owningUserId === me.user?.id);
   form.paidByMemberId = meMember?.id ?? formGroup.value.members[0]?.id ?? '';
   form.participantMemberIds = formGroup.value.members.map(m => m.id);
+  form.settlementRecipientId = formGroup.value.members.find(m => m.id !== form.paidByMemberId)?.id ?? '';
 });
 
 async function load() {
@@ -68,32 +72,53 @@ function resetForm() {
   editingId.value = null;
   form.pattern = '';
   form.matchType = 'Contains';
+  form.entryType = 'Expense';
   form.priority = 0;
   form.groupId = me.groups[0]?.id ?? '';
-  // formGroup watcher will populate payer + participants
 }
 
 function editRule(rule: SharingRule) {
   editingId.value = rule.id;
   form.pattern = rule.pattern;
   form.matchType = rule.matchType;
+  form.entryType = rule.entryType;
   form.priority = rule.priority;
   form.groupId = rule.groupId;
   form.paidByMemberId = rule.paidByMemberId;
-  form.participantMemberIds = [...rule.participantMemberIds];
+  if (rule.entryType === 'Settlement') {
+    form.settlementRecipientId = rule.participantMemberIds[0] ?? '';
+    form.participantMemberIds = [...rule.participantMemberIds];
+  } else {
+    form.participantMemberIds = [...rule.participantMemberIds];
+  }
 }
 
+function effectiveParticipants(): string[] {
+  return form.entryType === 'Settlement'
+    ? (form.settlementRecipientId ? [form.settlementRecipientId] : [])
+    : form.participantMemberIds;
+}
+
+const canSave = computed(() => {
+  if (!form.pattern.trim() || !form.groupId || !form.paidByMemberId) return false;
+  const p = effectiveParticipants();
+  if (!p.length) return false;
+  if (form.entryType === 'Settlement' && p[0] === form.paidByMemberId) return false;
+  return true;
+});
+
 async function saveRule() {
-  if (!form.pattern.trim() || !form.groupId || !form.paidByMemberId || !form.participantMemberIds.length) return;
+  if (!canSave.value) return;
   error.value = null;
   try {
     const payload = {
       pattern: form.pattern.trim(),
       matchType: form.matchType,
+      entryType: form.entryType,
       priority: form.priority,
       groupId: form.groupId,
       paidByMemberId: form.paidByMemberId,
-      participantMemberIds: form.participantMemberIds,
+      participantMemberIds: effectiveParticipants(),
     };
     if (editingId.value) {
       await api.put(`/sharing-rules/${editingId.value}`, payload);
@@ -127,7 +152,7 @@ async function applyToExisting() {
     const { data } = await api.post<{ examined: number; matched: number; split: number; skipped: number }>(
       '/sharing-rules/apply'
     );
-    applyMessage.value = `Examined ${data.examined}, matched ${data.matched}, split ${data.split}, skipped ${data.skipped} (already split or invalid).`;
+    applyMessage.value = `Examined ${data.examined}, matched ${data.matched}, applied ${data.split}, skipped ${data.skipped} (already linked or invalid).`;
   } catch (e: any) {
     error.value = e?.response?.data?.error ?? (e instanceof Error ? e.message : 'Apply failed');
   } finally {
@@ -140,11 +165,14 @@ function summary(rule: SharingRule): string {
   const groupName = g?.name ?? '?';
   const payer = findMember(rule.groupId, rule.paidByMemberId);
   const payerName = payer ? memberLabel(payer) : '?';
-  const participants = rule.participantMemberIds
+  const others = rule.participantMemberIds
     .map(id => findMember(rule.groupId, id))
     .filter((m): m is GroupMember => !!m)
     .map(m => memberLabel(m));
-  return `Group ${groupName} • paid by ${payerName} • split between ${participants.join(', ')}`;
+  if (rule.entryType === 'Settlement') {
+    return `Settle: ${payerName} → ${others[0] ?? '?'} (clears debt in ${groupName})`;
+  }
+  return `Split: ${groupName} • paid by ${payerName} • between ${others.join(', ')}`;
 }
 
 function toggleParticipant(memberId: string) {
@@ -169,8 +197,8 @@ watch(() => me.groups, () => {
       <div>
         <h2 class="text-2xl font-semibold">Sharing rules</h2>
         <p class="text-sm text-slate-600 mt-1">
-          When a transaction description matches the pattern, it's automatically split into the chosen group
-          (highest priority wins). Splits only fire on the "Apply" button below — they don't run during import yet.
+          When a transaction matches the pattern, it's automatically turned into either an expense split or a debt settlement
+          (highest priority wins). Rules only fire on the "Apply" button below.
         </p>
       </div>
       <button
@@ -183,10 +211,20 @@ watch(() => me.groups, () => {
 
     <section class="bg-white rounded border border-slate-200 p-4 space-y-3">
       <h3 class="font-medium">{{ editingId ? 'Edit rule' : 'New rule' }}</h3>
+      <div class="flex gap-4 text-sm">
+        <label class="flex items-center gap-2">
+          <input v-model="form.entryType" type="radio" value="Expense" />
+          <span>Expense (split debt across members)</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input v-model="form.entryType" type="radio" value="Settlement" />
+          <span>Settlement (clear existing debt)</span>
+        </label>
+      </div>
       <div class="grid gap-3 md:grid-cols-4">
         <label class="flex flex-col text-sm md:col-span-2">
           <span class="text-slate-600 mb-1">Pattern</span>
-          <input v-model="form.pattern" type="text" placeholder="TESCO" class="border border-slate-300 rounded px-3 py-2" />
+          <input v-model="form.pattern" type="text" placeholder="Transfer to Joint" class="border border-slate-300 rounded px-3 py-2" />
         </label>
         <label class="flex flex-col text-sm">
           <span class="text-slate-600 mb-1">Match</span>
@@ -205,14 +243,15 @@ watch(() => me.groups, () => {
           </select>
         </label>
         <label v-if="formGroup" class="flex flex-col text-sm md:col-span-2">
-          <span class="text-slate-600 mb-1">Paid by</span>
+          <span class="text-slate-600 mb-1">{{ form.entryType === 'Settlement' ? 'Sender (your side)' : 'Paid by' }}</span>
           <select v-model="form.paidByMemberId" class="border border-slate-300 rounded px-3 py-2">
             <option v-for="m in formGroup.members" :key="m.id" :value="m.id">{{ memberLabel(m) }}</option>
           </select>
         </label>
       </div>
-      <div v-if="formGroup">
-        <div class="text-sm text-slate-600 mb-2">Split equally between (the payer's share is excluded):</div>
+
+      <div v-if="formGroup && form.entryType === 'Expense'">
+        <div class="text-sm text-slate-600 mb-2">Split equally between (the payer's share is excluded from owers):</div>
         <div class="flex flex-wrap gap-3">
           <label v-for="m in formGroup.members" :key="m.id" class="flex items-center gap-2 text-sm">
             <input
@@ -224,10 +263,26 @@ watch(() => me.groups, () => {
           </label>
         </div>
       </div>
+
+      <div v-if="formGroup && form.entryType === 'Settlement'">
+        <label class="flex flex-col text-sm max-w-md">
+          <span class="text-slate-600 mb-1">Recipient (whose debt is being cleared)</span>
+          <select v-model="form.settlementRecipientId" class="border border-slate-300 rounded px-3 py-2">
+            <option v-for="m in formGroup.members.filter(x => x.id !== form.paidByMemberId)" :key="m.id" :value="m.id">
+              {{ memberLabel(m) }}
+            </option>
+          </select>
+        </label>
+        <p class="text-xs text-slate-500 mt-1">
+          Matched transactions become a settlement: {{ formGroup.members.find(m => m.id === form.paidByMemberId) ? memberLabel(formGroup.members.find(m => m.id === form.paidByMemberId)!) : '?' }}
+          paid {{ formGroup.members.find(m => m.id === form.settlementRecipientId) ? memberLabel(formGroup.members.find(m => m.id === form.settlementRecipientId)!) : '?' }} the full transaction amount.
+        </p>
+      </div>
+
       <div class="flex gap-2">
         <button
           @click="saveRule"
-          :disabled="!form.pattern.trim() || !form.groupId || !form.paidByMemberId || !form.participantMemberIds.length"
+          :disabled="!canSave"
           class="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-slate-300"
         >{{ editingId ? 'Save' : 'Add' }}</button>
         <button v-if="editingId" @click="resetForm" class="px-4 py-2 border border-slate-300 rounded">Cancel</button>
@@ -242,8 +297,9 @@ watch(() => me.groups, () => {
           <tr>
             <th class="text-right px-4 py-2 w-20">Priority</th>
             <th class="text-left px-4 py-2">Pattern</th>
-            <th class="text-left px-4 py-2">Match</th>
-            <th class="text-left px-4 py-2">Split</th>
+            <th class="text-left px-4 py-2 w-24">Match</th>
+            <th class="text-left px-4 py-2 w-28">Type</th>
+            <th class="text-left px-4 py-2">Effect</th>
             <th class="text-right px-4 py-2 w-32"></th>
           </tr>
         </thead>
@@ -252,6 +308,7 @@ watch(() => me.groups, () => {
             <td class="px-4 py-2 text-right tabular-nums">{{ r.priority }}</td>
             <td class="px-4 py-2 font-mono">{{ r.pattern }}</td>
             <td class="px-4 py-2 text-slate-600">{{ r.matchType }}</td>
+            <td class="px-4 py-2 text-slate-600">{{ r.entryType }}</td>
             <td class="px-4 py-2 text-slate-600">{{ summary(r) }}</td>
             <td class="px-4 py-2 text-right space-x-2">
               <button @click="editRule(r)" class="text-blue-600 hover:underline">Edit</button>

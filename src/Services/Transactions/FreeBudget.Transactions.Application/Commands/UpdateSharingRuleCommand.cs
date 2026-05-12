@@ -9,6 +9,7 @@ public sealed record UpdateSharingRuleCommand(
     Guid RuleId,
     string Pattern,
     RuleMatchType MatchType,
+    LedgerEntryKind EntryType,
     int Priority,
     Guid GroupId,
     Guid PaidByMemberId,
@@ -24,7 +25,7 @@ internal sealed class UpdateSharingRuleHandler(ISharingRuleRepository repository
 
         try
         {
-            rule.Update(request.Pattern, request.MatchType, request.GroupId,
+            rule.Update(request.Pattern, request.MatchType, request.EntryType, request.GroupId,
                 request.PaidByMemberId, request.ParticipantMemberIds, request.Priority);
         }
         catch (ArgumentException ex)

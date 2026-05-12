@@ -150,9 +150,11 @@ app.MapPost("/api/sharing-rules", async (
 {
     if (!Enum.TryParse<RuleMatchType>(request.MatchType, true, out var matchType))
         return Results.BadRequest(new { Error = $"Invalid match type: '{request.MatchType}'." });
+    if (!Enum.TryParse<LedgerEntryKind>(request.EntryType ?? "Expense", true, out var entryType))
+        return Results.BadRequest(new { Error = $"Invalid entry type: '{request.EntryType}'. Supported: Expense, Settlement" });
 
     var result = await mediator.Send(new CreateSharingRuleCommand(
-        request.UserId, request.Pattern, matchType, request.Priority,
+        request.UserId, request.Pattern, matchType, entryType, request.Priority,
         request.GroupId, request.PaidByMemberId, request.ParticipantMemberIds), ct);
     if (result.IsFailure)
         return Results.UnprocessableEntity(new { result.Error });
@@ -167,9 +169,11 @@ app.MapPut("/api/sharing-rules/{id:guid}", async (
 {
     if (!Enum.TryParse<RuleMatchType>(request.MatchType, true, out var matchType))
         return Results.BadRequest(new { Error = $"Invalid match type: '{request.MatchType}'." });
+    if (!Enum.TryParse<LedgerEntryKind>(request.EntryType ?? "Expense", true, out var entryType))
+        return Results.BadRequest(new { Error = $"Invalid entry type: '{request.EntryType}'." });
 
     var result = await mediator.Send(new UpdateSharingRuleCommand(
-        id, request.Pattern, matchType, request.Priority,
+        id, request.Pattern, matchType, entryType, request.Priority,
         request.GroupId, request.PaidByMemberId, request.ParticipantMemberIds), ct);
     if (result.IsFailure)
         return Results.NotFound(new { result.Error });
@@ -340,10 +344,10 @@ record UpdateRuleRequest(string Pattern, string MatchType, string Category, int 
 record UpdateCategoryRequest(string? Category);
 record ApplyRulesRequest(Guid UserId, IReadOnlyList<Guid> BankAccountIds);
 record CreateSharingRuleRequest(
-    Guid UserId, string Pattern, string MatchType, int Priority,
+    Guid UserId, string Pattern, string MatchType, string? EntryType, int Priority,
     Guid GroupId, Guid PaidByMemberId, IReadOnlyList<Guid> ParticipantMemberIds);
 record UpdateSharingRuleRequest(
-    string Pattern, string MatchType, int Priority,
+    string Pattern, string MatchType, string? EntryType, int Priority,
     Guid GroupId, Guid PaidByMemberId, IReadOnlyList<Guid> ParticipantMemberIds);
 record UpsertImportLayoutRequest(
     Guid CreatedByUserId,

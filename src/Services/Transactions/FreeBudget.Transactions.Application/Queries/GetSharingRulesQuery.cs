@@ -13,7 +13,7 @@ internal sealed class GetSharingRulesHandler(ISharingRuleRepository repository)
     {
         var rules = await repository.GetByUserIdAsync(request.UserId, cancellationToken);
         return rules.Select(r => new SharingRuleDto(
-            r.Id, r.Pattern, r.RuleMatchType.ToString(), r.Priority,
+            r.Id, r.Pattern, r.RuleMatchType.ToString(), r.EntryType.ToString(), r.Priority,
             r.GroupId, r.PaidByMemberId, r.ParticipantMemberIds)).ToList();
     }
 }

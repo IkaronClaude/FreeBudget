@@ -20,6 +20,7 @@ internal sealed class SharingRuleConfiguration : IEntityTypeConfiguration<Sharin
 
         builder.Property(r => r.Pattern).HasColumnName("pattern").HasMaxLength(500).IsRequired();
         builder.Property(r => r.RuleMatchType).HasConversion<string>().HasColumnName("match_type").HasMaxLength(20).IsRequired();
+        builder.Property(r => r.EntryType).HasConversion<string>().HasColumnName("entry_type").HasMaxLength(20).IsRequired().HasDefaultValue(FreeBudget.Transactions.Domain.Enums.LedgerEntryKind.Expense);
         builder.Property(r => r.Priority).HasColumnName("priority").IsRequired();
         builder.Property(r => r.GroupId).HasColumnName("group_id").IsRequired();
         builder.Property(r => r.PaidByMemberId).HasColumnName("paid_by_member_id").IsRequired();

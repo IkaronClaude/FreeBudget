@@ -79,10 +79,13 @@ export interface CategorizationRule {
   priority: number;
 }
 
+export type LedgerEntryKind = 'Expense' | 'Settlement';
+
 export interface SharingRule {
   id: string;
   pattern: string;
   matchType: RuleMatchType;
+  entryType: LedgerEntryKind;
   priority: number;
   groupId: string;
   paidByMemberId: string;

@@ -30,7 +30,7 @@ public static class SharingRulesEndpoints
             var payload = new
             {
                 UserId = me.Id,
-                body.Pattern, body.MatchType, body.Priority,
+                body.Pattern, body.MatchType, body.EntryType, body.Priority,
                 body.GroupId, body.PaidByMemberId, body.ParticipantMemberIds,
             };
             var response = await client.Http.PostAsJsonAsync("/api/sharing-rules", payload, ct);
@@ -96,33 +96,49 @@ public static class SharingRulesEndpoints
                     if (rule is null) continue;
                     matched++;
 
-                    var perHead = txn.Amount / rule.ParticipantMemberIds.Count;
-                    var owers = rule.ParticipantMemberIds
-                        .Where(id => id != rule.PaidByMemberId)
-                        .Select(id => new SplitParticipantInputDto(id, decimal.Round(perHead, 2)))
-                        .ToList();
-
-                    if (owers.Count == 0)
+                    HttpResponseMessage resp;
+                    if (string.Equals(rule.EntryType, "Settlement", StringComparison.OrdinalIgnoreCase))
                     {
-                        skipped++;
-                        continue;
+                        var settlementPayload = new
+                        {
+                            rule.GroupId,
+                            rule.PaidByMemberId,
+                            OwedByMemberId = rule.ParticipantMemberIds[0],
+                            Amount = decimal.Round(Math.Abs(txn.Amount), 2),
+                            CurrencyCode = txn.CurrencyCode,
+                            Description = txn.Description,
+                            EntryDate = txn.TransactionDate,
+                            CreatedByUserId = me.Id,
+                            TransactionId = (Guid?)txn.Id,
+                        };
+                        resp = await ledger.Http.PostAsJsonAsync("/api/ledger/settlements", settlementPayload, ct);
+                    }
+                    else
+                    {
+                        var perHead = decimal.Round(Math.Abs(txn.Amount) / rule.ParticipantMemberIds.Count, 2);
+                        var owers = rule.ParticipantMemberIds
+                            .Where(id => id != rule.PaidByMemberId)
+                            .Select(id => new SplitParticipantInputDto(id, perHead))
+                            .ToList();
+                        if (owers.Count == 0) { skipped++; continue; }
+
+                        var splitPayload = new
+                        {
+                            rule.GroupId,
+                            rule.PaidByMemberId,
+                            TransactionId = txn.Id,
+                            CurrencyCode = txn.CurrencyCode,
+                            Description = txn.Description,
+                            EntryDate = txn.TransactionDate,
+                            CreatedByUserId = me.Id,
+                            Participants = owers,
+                        };
+                        resp = await ledger.Http.PostAsJsonAsync("/api/ledger/splits", splitPayload, ct);
                     }
 
-                    var splitPayload = new
-                    {
-                        rule.GroupId,
-                        rule.PaidByMemberId,
-                        TransactionId = txn.Id,
-                        CurrencyCode = txn.CurrencyCode,
-                        Description = txn.Description,
-                        EntryDate = txn.TransactionDate,
-                        CreatedByUserId = me.Id,
-                        Participants = owers,
-                    };
-                    var splitResp = await ledger.Http.PostAsJsonAsync("/api/ledger/splits", splitPayload, ct);
-                    if (splitResp.IsSuccessStatusCode) split++;
-                    else if (splitResp.StatusCode == HttpStatusCode.UnprocessableEntity) skipped++;
-                    else splitResp.EnsureSuccessStatusCode();
+                    if (resp.IsSuccessStatusCode) split++;
+                    else if (resp.StatusCode == HttpStatusCode.UnprocessableEntity) skipped++;
+                    else resp.EnsureSuccessStatusCode();
                 }
             }
 
