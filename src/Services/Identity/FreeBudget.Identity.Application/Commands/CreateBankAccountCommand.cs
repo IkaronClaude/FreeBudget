@@ -36,6 +36,7 @@ internal sealed class CreateBankAccountHandler(IBankAccountRepository repository
             account.BankType.Name,
             account.Nickname,
             account.ExternalAccountId,
-            account.HasApiCredentials));
+            account.HasApiCredentials,
+            account.AccessGrants.Select(g => g.GroupId).ToList()));
     }
 }

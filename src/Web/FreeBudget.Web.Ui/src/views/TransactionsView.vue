@@ -120,16 +120,22 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
 
 const matching = ref(false);
 const matchMessage = ref<string | null>(null);
+const matchScope = ref<string>(''); // '' = my accounts; otherwise a groupId
 
 async function matchTransfers() {
   matching.value = true;
   matchMessage.value = null;
   error.value = null;
   try {
+    const params: Record<string, string> = {};
+    if (matchScope.value) params.groupId = matchScope.value;
     const { data } = await api.post<{ examined: number; matched: number; ambiguousSkipped: number }>(
-      '/transactions/match-transfers'
+      '/transactions/match-transfers', null, { params }
     );
-    matchMessage.value = `Examined ${data.examined}, paired ${data.matched}, skipped ${data.ambiguousSkipped} ambiguous.`;
+    const scopeLabel = matchScope.value
+      ? `within group "${me.groups.find(g => g.id === matchScope.value)?.name ?? '?'}"`
+      : 'across your accounts';
+    matchMessage.value = `Examined ${data.examined} ${scopeLabel}, paired ${data.matched}, skipped ${data.ambiguousSkipped} ambiguous.`;
     await loadTransactions();
   } catch (e: any) {
     error.value = e?.response?.data?.error ?? (e instanceof Error ? e.message : 'Match failed');
@@ -172,11 +178,15 @@ async function matchTransfers() {
         <span class="text-slate-500">
           {{ uncategorizedCount }} uncategorized of {{ transactions.length }}
         </span>
+        <select v-model="matchScope" class="border border-slate-300 rounded px-2 py-1 text-sm">
+          <option value="">My accounts</option>
+          <option v-for="g in me.groups" :key="g.id" :value="g.id">In group: {{ g.name }}</option>
+        </select>
         <button
           @click="matchTransfers"
           :disabled="matching"
           class="border border-slate-300 px-3 py-1 rounded disabled:text-slate-400"
-          title="Pair transactions across your accounts that look like the same transfer"
+          title="Pair transactions that look like the same transfer"
         >{{ matching ? 'Matching...' : 'Match transfers' }}</button>
       </div>
     </div>

@@ -6,4 +6,5 @@ public sealed record BankAccountDto(
     string BankType,
     string Nickname,
     string? ExternalAccountId,
-    bool HasApiCredentials);
+    bool HasApiCredentials,
+    IReadOnlyList<Guid> AccessibleGroupIds);

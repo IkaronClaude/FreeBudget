@@ -118,6 +118,15 @@ app.MapGet("/api/ledger/entries", async (
     }));
 });
 
+app.MapGet("/api/ledger/groups/{groupId:guid}/shared-transaction-ids", async (
+    Guid groupId,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var ids = await mediator.Send(new GetGroupSharedTransactionIdsQuery(groupId), ct);
+    return Results.Ok(ids);
+});
+
 app.MapGet("/api/ledger/balances", async (
     Guid groupId,
     IMediator mediator,
