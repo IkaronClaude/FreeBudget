@@ -78,3 +78,38 @@ export interface CategorizationRule {
   category: string;
   priority: number;
 }
+
+export interface SplitParticipantInput {
+  memberId: string;
+  amount: number;
+}
+
+export interface SplitTransactionInput {
+  groupId: string;
+  paidByMemberId: string;
+  transactionId: string;
+  currencyCode: string;
+  description: string;
+  entryDate: string;
+  participants: SplitParticipantInput[];
+}
+
+export interface MemberBalance {
+  memberId: string;
+  owesToMemberId: string;
+  amount: number;
+  currencyCode: string;
+}
+
+export interface LedgerEntry {
+  id: string;
+  groupId: string;
+  paidByMemberId: string;
+  owedByMemberId: string;
+  amount: number;
+  currencyCode: string;
+  description: string;
+  entryType: 'Expense' | 'Settlement';
+  transactionId?: string | null;
+  entryDate: string;
+}

@@ -50,5 +50,6 @@ app.MapCategorizationRulesEndpoints();
 app.MapBankAccountsEndpoints();
 app.MapGroupsEndpoints();
 app.MapImportLayoutsEndpoints();
+app.MapLedgerEndpoints();
 
 await app.RunAsync();

@@ -103,6 +103,27 @@ public sealed record ImportLayoutDto(
     string Delimiter,
     string DefaultCurrencyCode);
 
+public sealed record SplitParticipantInputDto(Guid MemberId, decimal Amount);
+
+public sealed record SplitTransactionInputDto(
+    Guid GroupId,
+    Guid PaidByMemberId,
+    Guid TransactionId,
+    string CurrencyCode,
+    string Description,
+    DateTime EntryDate,
+    IReadOnlyList<SplitParticipantInputDto> Participants);
+
+public sealed record CreateLedgerEntryInputDto(
+    Guid GroupId,
+    Guid PaidByMemberId,
+    Guid OwedByMemberId,
+    decimal Amount,
+    string CurrencyCode,
+    string Description,
+    DateTime EntryDate,
+    Guid? TransactionId);
+
 public sealed record UpsertImportLayoutInputDto(
     string Name,
     string DateColumn,
