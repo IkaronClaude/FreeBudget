@@ -19,13 +19,24 @@ public class GroupTests
     }
 
     [Fact]
-    public void Create_adds_creator_as_admin_member()
+    public void Create_adds_creator_as_admin_member_with_default_label()
     {
         var group = Group.Create("Household", CreatorId);
 
-        group.Memberships.Should().ContainSingle()
-            .Which.Should().Match<GroupMembership>(m =>
-                m.UserId == CreatorId && m.Role == GroupRole.Admin);
+        group.Members.Should().ContainSingle()
+            .Which.Should().Match<GroupMember>(m =>
+                m.OwningUserId == CreatorId
+                && m.Role == GroupRole.Admin
+                && m.Label == "me");
+    }
+
+    [Fact]
+    public void Create_with_custom_creator_label()
+    {
+        var group = Group.Create("Household", CreatorId, "alice");
+
+        group.Members.Should().ContainSingle()
+            .Which.Label.Should().Be("alice");
     }
 
     [Fact]
@@ -58,60 +69,71 @@ public class GroupTests
     }
 
     [Fact]
-    public void AddMember_adds_membership()
+    public void AddMember_with_label_only_creates_placeholder()
     {
         var group = Group.Create("Household", CreatorId);
-        var memberId = Guid.NewGuid();
 
-        group.AddMember(memberId);
+        var member = group.AddMember("partner");
 
-        group.Memberships.Should().HaveCount(2);
-        group.Memberships.Should().Contain(m => m.UserId == memberId && m.Role == GroupRole.Member);
+        member.Label.Should().Be("partner");
+        member.OwningUserId.Should().BeNull();
+        member.Role.Should().Be(GroupRole.Member);
+        group.Members.Should().HaveCount(2);
     }
 
     [Fact]
-    public void AddMember_returns_created_membership()
+    public void AddMember_with_owning_user_links_immediately()
     {
         var group = Group.Create("Household", CreatorId);
-        var memberId = Guid.NewGuid();
+        var partnerId = Guid.NewGuid();
 
-        var membership = group.AddMember(memberId, GroupRole.Admin);
+        var member = group.AddMember("partner", partnerId);
 
-        membership.UserId.Should().Be(memberId);
-        membership.Role.Should().Be(GroupRole.Admin);
+        member.OwningUserId.Should().Be(partnerId);
     }
 
     [Fact]
-    public void AddMember_duplicate_userId_throws()
+    public void AddMember_duplicate_label_throws()
     {
         var group = Group.Create("Household", CreatorId);
-        var memberId = Guid.NewGuid();
-        group.AddMember(memberId);
+        group.AddMember("partner");
 
-        var act = () => group.AddMember(memberId);
+        var act = () => group.AddMember("partner");
 
         act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
-    public void RemoveMember_removes_membership()
+    public void AddMember_duplicate_owning_user_throws()
     {
         var group = Group.Create("Household", CreatorId);
-        var memberId = Guid.NewGuid();
-        group.AddMember(memberId);
+        var partnerId = Guid.NewGuid();
+        group.AddMember("partner", partnerId);
 
-        group.RemoveMember(memberId);
+        var act = () => group.AddMember("partner-2", partnerId);
 
-        group.Memberships.Should().ContainSingle()
-            .Which.UserId.Should().Be(CreatorId);
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void RemoveMember_removes_by_id()
+    {
+        var group = Group.Create("Household", CreatorId);
+        var added = group.AddMember("partner");
+
+        group.RemoveMember(added.Id);
+
+        group.Members.Should().ContainSingle()
+            .Which.OwningUserId.Should().Be(CreatorId);
     }
 
     [Fact]
     public void RemoveMember_creator_throws()
     {
         var group = Group.Create("Household", CreatorId);
+        var creatorMember = group.Members.Single();
 
-        var act = () => group.RemoveMember(CreatorId);
+        var act = () => group.RemoveMember(creatorMember.Id);
 
         act.Should().Throw<InvalidOperationException>();
     }

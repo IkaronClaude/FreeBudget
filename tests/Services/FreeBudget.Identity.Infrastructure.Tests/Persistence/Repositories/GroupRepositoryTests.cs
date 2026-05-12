@@ -14,7 +14,7 @@ public class GroupRepositoryTests
             .Options;
 
     [Fact]
-    public async Task AddAsync_persists_group_with_memberships()
+    public async Task AddAsync_persists_group_with_members()
     {
         var options = CreateOptions();
         Guid groupId;
@@ -30,17 +30,17 @@ public class GroupRepositoryTests
         await using (var context = new IdentityDbContext(options))
         {
             var found = await context.Groups
-                .Include(g => g.Memberships)
+                .Include(g => g.Members)
                 .FirstOrDefaultAsync(g => g.Id == groupId);
 
             found.Should().NotBeNull();
             found!.Name.Should().Be("Household");
-            found.Memberships.Should().HaveCount(1);
+            found.Members.Should().HaveCount(1);
         }
     }
 
     [Fact]
-    public async Task GetByIdAsync_includes_memberships()
+    public async Task GetByIdAsync_includes_members()
     {
         var options = CreateOptions();
         var creatorId = Guid.NewGuid();
@@ -49,7 +49,7 @@ public class GroupRepositoryTests
         await using (var context = new IdentityDbContext(options))
         {
             var group = Group.Create("Test Group", creatorId);
-            group.AddMember(Guid.NewGuid());
+            group.AddMember("partner");
             groupId = group.Id;
             await context.Groups.AddAsync(group);
             await context.SaveChangesAsync();
@@ -61,12 +61,12 @@ public class GroupRepositoryTests
             var found = await repo.GetByIdAsync(groupId);
 
             found.Should().NotBeNull();
-            found!.Memberships.Should().HaveCount(2);
+            found!.Members.Should().HaveCount(2);
         }
     }
 
     [Fact]
-    public async Task GetByUserIdAsync_returns_groups_containing_user()
+    public async Task GetByUserIdAsync_returns_groups_where_user_is_an_owning_user()
     {
         var options = CreateOptions();
         var userId = Guid.NewGuid();
@@ -75,7 +75,7 @@ public class GroupRepositoryTests
         {
             var group1 = Group.Create("Group 1", userId);
             var group2 = Group.Create("Group 2", Guid.NewGuid());
-            group2.AddMember(userId);
+            group2.AddMember("anna", userId);
             var group3 = Group.Create("Group 3", Guid.NewGuid());
             await context.Groups.AddRangeAsync(group1, group2, group3);
             await context.SaveChangesAsync();

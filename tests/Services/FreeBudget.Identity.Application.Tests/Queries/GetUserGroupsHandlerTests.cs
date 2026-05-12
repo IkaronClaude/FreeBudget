@@ -17,14 +17,15 @@ public class GetUserGroupsHandlerTests
     }
 
     [Fact]
-    public async Task Returns_groups_with_member_role()
+    public async Task Returns_groups_with_members()
     {
         var userId = Guid.NewGuid();
         var personal = Group.Create("Personal", userId);
 
         var otherCreator = Guid.NewGuid();
         var shared = Group.Create("Shared", otherCreator);
-        shared.AddMember(userId);
+        shared.AddMember("anna", userId);
+        shared.AddMember("joint");
 
         _repo.GetByUserIdAsync(userId, Arg.Any<CancellationToken>())
             .Returns(new[] { personal, shared });
@@ -32,8 +33,14 @@ public class GetUserGroupsHandlerTests
         var result = await _handler.Handle(new GetUserGroupsQuery(userId), CancellationToken.None);
 
         result.Should().HaveCount(2);
-        result.First(g => g.Name == "Personal").Role.Should().Be("Admin");
-        result.First(g => g.Name == "Shared").Role.Should().Be("Member");
+
+        var personalDto = result.First(g => g.Name == "Personal");
+        personalDto.Members.Should().ContainSingle()
+            .Which.OwningUserId.Should().Be(userId);
+
+        var sharedDto = result.First(g => g.Name == "Shared");
+        sharedDto.Members.Should().HaveCount(3);
+        sharedDto.Members.Should().Contain(m => m.Label == "joint" && m.OwningUserId == null);
     }
 
     [Fact]

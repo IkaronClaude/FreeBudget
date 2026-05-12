@@ -4,10 +4,19 @@ export interface User {
   displayName: string;
 }
 
+export interface GroupMember {
+  id: string;
+  groupId: string;
+  label: string;
+  owningUserId?: string | null;
+  role: string;
+}
+
 export interface Group {
   id: string;
   name: string;
-  role: string;
+  createdByUserId: string;
+  members: GroupMember[];
 }
 
 export interface BankAccount {
@@ -58,4 +67,14 @@ export interface ImportCsvResponse {
   importBatchId: string;
   transactionCount: number;
   skippedDuplicates: number;
+}
+
+export type RuleMatchType = 'Contains' | 'Exact' | 'StartsWith' | 'EndsWith';
+
+export interface CategorizationRule {
+  id: string;
+  pattern: string;
+  matchType: RuleMatchType;
+  category: string;
+  priority: number;
 }

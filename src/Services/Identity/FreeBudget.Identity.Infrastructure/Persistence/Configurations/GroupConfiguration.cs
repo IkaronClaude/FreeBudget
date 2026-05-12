@@ -24,12 +24,12 @@ internal sealed class GroupConfiguration : IEntityTypeConfiguration<Group>
 
         builder.HasIndex(g => g.CreatedByUserId);
 
-        builder.HasMany(g => g.Memberships)
+        builder.HasMany(g => g.Members)
             .WithOne()
             .HasForeignKey(m => m.GroupId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Navigation(g => g.Memberships)
+        builder.Navigation(g => g.Members)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.Property(g => g.CreatedAt).HasColumnName("created_at").IsRequired();

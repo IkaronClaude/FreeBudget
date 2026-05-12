@@ -21,8 +21,8 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                     nickname = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     external_account_id = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     has_api_credentials = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    modified_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    created_at = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    modified_at = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -36,8 +36,8 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     created_by_user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    modified_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    created_at = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    modified_at = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -51,8 +51,8 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     display_name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    modified_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    created_at = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    modified_at = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -66,7 +66,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     bank_account_id = table.Column<Guid>(type: "uuid", nullable: false),
                     group_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    granted_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    granted_at = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -80,19 +80,20 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "group_memberships",
+                name: "group_members",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     group_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    label = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    owning_user_id = table.Column<Guid>(type: "uuid", nullable: true),
                     role = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_group_memberships", x => x.id);
+                    table.PrimaryKey("PK_group_members", x => x.id);
                     table.ForeignKey(
-                        name: "FK_group_memberships_groups_group_id",
+                        name: "FK_group_members_groups_group_id",
                         column: x => x.group_id,
                         principalTable: "groups",
                         principalColumn: "id",
@@ -111,10 +112,14 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                 column: "owner_user_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_group_memberships_group_id_user_id",
-                table: "group_memberships",
-                columns: new[] { "group_id", "user_id" },
-                unique: true);
+                name: "IX_group_members_group_id",
+                table: "group_members",
+                column: "group_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_group_members_owning_user_id",
+                table: "group_members",
+                column: "owning_user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_groups_created_by_user_id",
@@ -135,7 +140,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                 name: "bank_account_access");
 
             migrationBuilder.DropTable(
-                name: "group_memberships");
+                name: "group_members");
 
             migrationBuilder.DropTable(
                 name: "users");

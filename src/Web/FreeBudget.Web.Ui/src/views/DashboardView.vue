@@ -20,7 +20,7 @@ const me = useMeStore();
         <ul v-if="me.groups.length" class="space-y-1">
           <li v-for="g in me.groups" :key="g.id" class="flex justify-between">
             <span>{{ g.name }}</span>
-            <span class="text-xs text-slate-500">{{ g.role }}</span>
+            <span class="text-xs text-slate-500">{{ g.members.length }} members</span>
           </li>
         </ul>
         <p v-else class="text-sm text-slate-500">No groups yet.</p>

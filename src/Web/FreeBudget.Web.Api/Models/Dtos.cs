@@ -2,7 +2,18 @@ namespace FreeBudget.Web.Api.Models;
 
 public sealed record UserDto(Guid Id, string Email, string DisplayName);
 
-public sealed record GroupDto(Guid Id, string Name, string Role);
+public sealed record GroupDto(
+    Guid Id,
+    string Name,
+    Guid CreatedByUserId,
+    IReadOnlyList<GroupMemberDto> Members);
+
+public sealed record GroupMemberDto(
+    Guid Id,
+    Guid GroupId,
+    string Label,
+    Guid? OwningUserId,
+    string Role);
 
 public sealed record BankAccountDto(
     Guid Id,
@@ -44,3 +55,22 @@ public sealed record PeriodBreakdownItem(
     int TransactionCount);
 
 public sealed record ImportCsvResponse(Guid ImportBatchId, int TransactionCount, int SkippedDuplicates);
+
+public sealed record CategorizationRuleDto(
+    Guid Id,
+    string Pattern,
+    string MatchType,
+    string Category,
+    int Priority);
+
+public sealed record CreateCategorizationRuleRequest(
+    string Pattern,
+    string MatchType,
+    string Category,
+    int Priority);
+
+public sealed record UpdateCategorizationRuleRequest(
+    string Pattern,
+    string MatchType,
+    string Category,
+    int Priority);

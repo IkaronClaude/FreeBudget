@@ -46,5 +46,6 @@ app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Service = "Web.
 app.MapMeEndpoints();
 app.MapTransactionsEndpoints();
 app.MapReportsEndpoints();
+app.MapCategorizationRulesEndpoints();
 
 await app.RunAsync();

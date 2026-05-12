@@ -9,7 +9,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Group> Groups => Set<Group>();
-    public DbSet<GroupMembership> GroupMemberships => Set<GroupMembership>();
+    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<BankAccountAccess> BankAccountAccess => Set<BankAccountAccess>();
 

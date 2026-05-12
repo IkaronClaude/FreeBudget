@@ -36,7 +36,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnName("bank_type");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("ExternalAccountId")
@@ -51,7 +51,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnName("has_api_credentials");
 
                     b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("modified_at");
 
                     b.Property<string>("Nickname")
@@ -83,7 +83,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnName("bank_account_id");
 
                     b.Property<DateTime>("GrantedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("granted_at");
 
                     b.Property<Guid>("GroupId")
@@ -106,7 +106,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<Guid>("CreatedByUserId")
@@ -114,7 +114,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnName("created_by_user_id");
 
                     b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("modified_at");
 
                     b.Property<string>("Name")
@@ -130,7 +130,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                     b.ToTable("groups", (string)null);
                 });
 
-            modelBuilder.Entity("FreeBudget.Identity.Domain.Entities.GroupMembership", b =>
+            modelBuilder.Entity("FreeBudget.Identity.Domain.Entities.GroupMember", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -141,22 +141,29 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("group_id");
 
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("label");
+
+                    b.Property<Guid?>("OwningUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owning_user_id");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("role");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupId", "UserId")
-                        .IsUnique();
+                    b.HasIndex("GroupId");
 
-                    b.ToTable("group_memberships", (string)null);
+                    b.HasIndex("OwningUserId");
+
+                    b.ToTable("group_members", (string)null);
                 });
 
             modelBuilder.Entity("FreeBudget.Identity.Domain.Entities.User", b =>
@@ -167,7 +174,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnName("id");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("created_at");
 
                     b.Property<string>("DisplayName")
@@ -183,7 +190,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .HasColumnName("email");
 
                     b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("modified_at");
 
                     b.HasKey("Id");
@@ -203,10 +210,10 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("FreeBudget.Identity.Domain.Entities.GroupMembership", b =>
+            modelBuilder.Entity("FreeBudget.Identity.Domain.Entities.GroupMember", b =>
                 {
                     b.HasOne("FreeBudget.Identity.Domain.Entities.Group", null)
-                        .WithMany("Memberships")
+                        .WithMany("Members")
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -219,7 +226,7 @@ namespace FreeBudget.Identity.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("FreeBudget.Identity.Domain.Entities.Group", b =>
                 {
-                    b.Navigation("Memberships");
+                    b.Navigation("Members");
                 });
 #pragma warning restore 612, 618
         }
