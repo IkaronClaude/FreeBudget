@@ -6,6 +6,7 @@ import RulesView from '../views/RulesView.vue';
 import AccountsView from '../views/AccountsView.vue';
 import GroupsView from '../views/GroupsView.vue';
 import LedgerView from '../views/LedgerView.vue';
+import SharingRulesView from '../views/SharingRulesView.vue';
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -14,6 +15,7 @@ export const router = createRouter({
     { path: '/transactions', name: 'transactions', component: TransactionsView },
     { path: '/reports', name: 'reports', component: ReportsView },
     { path: '/rules', name: 'rules', component: RulesView },
+    { path: '/sharing-rules', name: 'sharing-rules', component: SharingRulesView },
     { path: '/accounts', name: 'accounts', component: AccountsView },
     { path: '/groups', name: 'groups', component: GroupsView },
     { path: '/ledger', name: 'ledger', component: LedgerView }

@@ -17,6 +17,7 @@ onMounted(() => me.load());
           <RouterLink to="/transactions" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Transactions</RouterLink>
           <RouterLink to="/reports" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Reports</RouterLink>
           <RouterLink to="/rules" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Rules</RouterLink>
+          <RouterLink to="/sharing-rules" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Sharing</RouterLink>
           <RouterLink to="/accounts" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Accounts</RouterLink>
           <RouterLink to="/groups" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Groups</RouterLink>
           <RouterLink to="/ledger" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Ledger</RouterLink>

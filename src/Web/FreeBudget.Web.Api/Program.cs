@@ -51,5 +51,6 @@ app.MapBankAccountsEndpoints();
 app.MapGroupsEndpoints();
 app.MapImportLayoutsEndpoints();
 app.MapLedgerEndpoints();
+app.MapSharingRulesEndpoints();
 
 await app.RunAsync();

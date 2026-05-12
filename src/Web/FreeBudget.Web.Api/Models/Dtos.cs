@@ -124,6 +124,33 @@ public sealed record CreateLedgerEntryInputDto(
     DateTime EntryDate,
     Guid? TransactionId);
 
+public sealed record SharingRuleDto(
+    Guid Id,
+    string Pattern,
+    string MatchType,
+    int Priority,
+    Guid GroupId,
+    Guid PaidByMemberId,
+    IReadOnlyList<Guid> ParticipantMemberIds);
+
+public sealed record CreateSharingRuleInputDto(
+    string Pattern,
+    string MatchType,
+    int Priority,
+    Guid GroupId,
+    Guid PaidByMemberId,
+    IReadOnlyList<Guid> ParticipantMemberIds);
+
+public sealed record UpdateSharingRuleInputDto(
+    string Pattern,
+    string MatchType,
+    int Priority,
+    Guid GroupId,
+    Guid PaidByMemberId,
+    IReadOnlyList<Guid> ParticipantMemberIds);
+
+public sealed record ApplySharingRulesResult(int Examined, int Matched, int Split, int Skipped);
+
 public sealed record UpsertImportLayoutInputDto(
     string Name,
     string DateColumn,

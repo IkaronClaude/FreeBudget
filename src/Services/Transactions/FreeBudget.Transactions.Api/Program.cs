@@ -134,6 +134,59 @@ app.MapGet("/api/import-layouts/presets", () =>
     });
 });
 
+app.MapGet("/api/sharing-rules", async (
+    Guid userId,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var rules = await mediator.Send(new GetSharingRulesQuery(userId), ct);
+    return Results.Ok(rules);
+});
+
+app.MapPost("/api/sharing-rules", async (
+    CreateSharingRuleRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    if (!Enum.TryParse<RuleMatchType>(request.MatchType, true, out var matchType))
+        return Results.BadRequest(new { Error = $"Invalid match type: '{request.MatchType}'." });
+
+    var result = await mediator.Send(new CreateSharingRuleCommand(
+        request.UserId, request.Pattern, matchType, request.Priority,
+        request.GroupId, request.PaidByMemberId, request.ParticipantMemberIds), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Created($"/api/sharing-rules/{result.Value}", new { Id = result.Value });
+});
+
+app.MapPut("/api/sharing-rules/{id:guid}", async (
+    Guid id,
+    UpdateSharingRuleRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    if (!Enum.TryParse<RuleMatchType>(request.MatchType, true, out var matchType))
+        return Results.BadRequest(new { Error = $"Invalid match type: '{request.MatchType}'." });
+
+    var result = await mediator.Send(new UpdateSharingRuleCommand(
+        id, request.Pattern, matchType, request.Priority,
+        request.GroupId, request.PaidByMemberId, request.ParticipantMemberIds), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/sharing-rules/{id:guid}", async (
+    Guid id,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new DeleteSharingRuleCommand(id), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
 app.MapPost("/api/categorization-rules/apply", async (
     ApplyRulesRequest request,
     IMediator mediator,
@@ -286,6 +339,12 @@ record CreateRuleRequest(Guid UserId, string Pattern, string MatchType, string C
 record UpdateRuleRequest(string Pattern, string MatchType, string Category, int Priority);
 record UpdateCategoryRequest(string? Category);
 record ApplyRulesRequest(Guid UserId, IReadOnlyList<Guid> BankAccountIds);
+record CreateSharingRuleRequest(
+    Guid UserId, string Pattern, string MatchType, int Priority,
+    Guid GroupId, Guid PaidByMemberId, IReadOnlyList<Guid> ParticipantMemberIds);
+record UpdateSharingRuleRequest(
+    string Pattern, string MatchType, int Priority,
+    Guid GroupId, Guid PaidByMemberId, IReadOnlyList<Guid> ParticipantMemberIds);
 record UpsertImportLayoutRequest(
     Guid CreatedByUserId,
     string Name,
