@@ -18,6 +18,7 @@ public sealed class Transaction : AggregateRoot<Guid>, IAuditableEntity
     public string? ExternalTransactionId { get; private init; }
     public Guid? ImportBatchId { get; private init; }
     public string? Category { get; private set; }
+    public Guid? MatchedTransactionId { get; private set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ModifiedAt { get; set; }
 
@@ -72,4 +73,15 @@ public sealed class Transaction : AggregateRoot<Guid>, IAuditableEntity
     {
         Category = category?.Trim();
     }
+
+    public void MatchTo(Guid otherTransactionId)
+    {
+        if (otherTransactionId == Guid.Empty)
+            throw new ArgumentException("Other transaction ID cannot be empty.", nameof(otherTransactionId));
+        if (otherTransactionId == Id)
+            throw new ArgumentException("A transaction cannot be matched to itself.", nameof(otherTransactionId));
+        MatchedTransactionId = otherTransactionId;
+    }
+
+    public void Unmatch() => MatchedTransactionId = null;
 }

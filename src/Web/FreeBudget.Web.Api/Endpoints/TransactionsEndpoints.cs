@@ -1,4 +1,5 @@
 using FreeBudget.Web.Api.Clients;
+using FreeBudget.Web.Api.CurrentUser;
 using FreeBudget.Web.Api.Models;
 
 namespace FreeBudget.Web.Api.Endpoints;
@@ -16,6 +17,20 @@ public static class TransactionsEndpoints
         {
             var items = await client.ListAsync(bankAccountId, from, to, ct);
             return Results.Ok(items);
+        });
+
+        app.MapPost("/api/transactions/match-transfers", async (
+            ICurrentUserResolver currentUser,
+            IdentityClient identity,
+            TransactionsClient client,
+            CancellationToken ct) =>
+        {
+            var me = await currentUser.GetAsync(ct);
+            var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
+            var payload = new { BankAccountIds = accounts.Select(a => a.Id).ToList(), DateToleranceDays = (int?)1 };
+            var response = await client.Http.PostAsJsonAsync("/api/transactions/match-transfers", payload, ct);
+            var content = await response.Content.ReadAsStringAsync(ct);
+            return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);
         });
 
         app.MapPatch("/api/transactions/{id:guid}/category", async (

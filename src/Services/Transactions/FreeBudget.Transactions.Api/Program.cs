@@ -191,6 +191,18 @@ app.MapDelete("/api/sharing-rules/{id:guid}", async (
     return Results.NoContent();
 });
 
+app.MapPost("/api/transactions/match-transfers", async (
+    MatchTransfersRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(
+        new MatchTransfersCommand(request.BankAccountIds, request.DateToleranceDays ?? 1), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Ok(result.Value);
+});
+
 app.MapPost("/api/categorization-rules/apply", async (
     ApplyRulesRequest request,
     IMediator mediator,
@@ -349,6 +361,7 @@ record CreateSharingRuleRequest(
 record UpdateSharingRuleRequest(
     string Pattern, string MatchType, string? EntryType, int Priority,
     Guid GroupId, Guid PaidByMemberId, IReadOnlyList<Guid> ParticipantMemberIds);
+record MatchTransfersRequest(IReadOnlyList<Guid> BankAccountIds, int? DateToleranceDays);
 record UpsertImportLayoutRequest(
     Guid CreatedByUserId,
     string Name,

@@ -44,6 +44,7 @@ export interface TransactionListItem {
   direction: 'Credit' | 'Debit';
   category?: string | null;
   externalTransactionId?: string | null;
+  matchedTransactionId?: string | null;
 }
 
 export interface CategoryBreakdownItem {

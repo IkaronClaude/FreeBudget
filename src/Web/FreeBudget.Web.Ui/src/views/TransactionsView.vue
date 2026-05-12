@@ -117,6 +117,26 @@ async function saveEdit() {
 }
 
 const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWith'];
+
+const matching = ref(false);
+const matchMessage = ref<string | null>(null);
+
+async function matchTransfers() {
+  matching.value = true;
+  matchMessage.value = null;
+  error.value = null;
+  try {
+    const { data } = await api.post<{ examined: number; matched: number; ambiguousSkipped: number }>(
+      '/transactions/match-transfers'
+    );
+    matchMessage.value = `Examined ${data.examined}, paired ${data.matched}, skipped ${data.ambiguousSkipped} ambiguous.`;
+    await loadTransactions();
+  } catch (e: any) {
+    error.value = e?.response?.data?.error ?? (e instanceof Error ? e.message : 'Match failed');
+  } finally {
+    matching.value = false;
+  }
+}
 </script>
 
 <template>
@@ -143,15 +163,24 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
       @imported="loadTransactions"
     />
 
-    <div class="flex items-center justify-between text-sm">
+    <div class="flex items-center justify-between gap-3 text-sm">
       <label class="flex items-center gap-2">
         <input v-model="onlyUncategorized" type="checkbox" />
         <span>Show only uncategorized</span>
       </label>
-      <span class="text-slate-500">
-        {{ uncategorizedCount }} uncategorized of {{ transactions.length }}
-      </span>
+      <div class="flex items-center gap-3">
+        <span class="text-slate-500">
+          {{ uncategorizedCount }} uncategorized of {{ transactions.length }}
+        </span>
+        <button
+          @click="matchTransfers"
+          :disabled="matching"
+          class="border border-slate-300 px-3 py-1 rounded disabled:text-slate-400"
+          title="Pair transactions across your accounts that look like the same transfer"
+        >{{ matching ? 'Matching...' : 'Match transfers' }}</button>
+      </div>
     </div>
+    <p v-if="matchMessage" class="text-green-700 text-sm">{{ matchMessage }}</p>
 
     <section class="bg-white rounded border border-slate-200 overflow-hidden">
       <div v-if="loading" class="p-4 text-slate-500">Loading...</div>
@@ -169,7 +198,10 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
           <template v-for="t in visibleTransactions" :key="t.id">
             <tr class="border-t border-slate-100">
               <td class="px-4 py-2 whitespace-nowrap">{{ new Date(t.transactionDate).toLocaleDateString() }}</td>
-              <td class="px-4 py-2">{{ t.description }}</td>
+              <td class="px-4 py-2">
+                {{ t.description }}
+                <span v-if="t.matchedTransactionId" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800" title="Matched to a transaction on another account">↔ transfer</span>
+              </td>
               <td class="px-4 py-2">
                 <button
                   v-if="editing?.txnId !== t.id"
