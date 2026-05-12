@@ -74,7 +74,7 @@ public static class SharingRulesEndpoints
             rulesResp.EnsureSuccessStatusCode();
             var rules = await rulesResp.Content.ReadFromJsonAsync<List<SharingRuleDto>>(cancellationToken: ct) ?? [];
             if (rules.Count == 0)
-                return Results.Ok(new ApplySharingRulesResult(0, 0, 0, 0));
+                return Results.Ok(new ApplySharingRulesResult(0, 0, 0, 0, 0));
 
             var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
 
@@ -142,7 +142,21 @@ public static class SharingRulesEndpoints
                 }
             }
 
-            return Results.Ok(new ApplySharingRulesResult(examined, matched, split, skipped));
+            // After applying rules, also run the transfer matcher so settlements created by
+            // rules can auto-link to their counterpart inbound transactions.
+            var transfersPaired = 0;
+            if (accounts.Count > 1)
+            {
+                var matchPayload = new { BankAccountIds = accounts.Select(a => a.Id).ToList(), DateToleranceDays = (int?)1 };
+                var matchResp = await transactions.Http.PostAsJsonAsync("/api/transactions/match-transfers", matchPayload, ct);
+                if (matchResp.IsSuccessStatusCode)
+                {
+                    var matchResult = await matchResp.Content.ReadFromJsonAsync<MatchTransfersResultDto>(cancellationToken: ct);
+                    transfersPaired = matchResult?.Matched ?? 0;
+                }
+            }
+
+            return Results.Ok(new ApplySharingRulesResult(examined, matched, split, skipped, transfersPaired));
         });
 
         return app;
