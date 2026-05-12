@@ -142,6 +142,18 @@ app.MapGet("/api/transactions", async (
     return Results.Ok(result);
 });
 
+app.MapPatch("/api/transactions/{id:guid}/category", async (
+    Guid id,
+    UpdateCategoryRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new UpdateTransactionCategoryCommand(id, request.Category), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
 app.MapGet("/api/reports/category-breakdown", async (
     Guid bankAccountId,
     DateTime from,
@@ -172,3 +184,4 @@ await app.RunAsync();
 
 record CreateRuleRequest(Guid UserId, string Pattern, string MatchType, string Category, int Priority = 0);
 record UpdateRuleRequest(string Pattern, string MatchType, string Category, int Priority);
+record UpdateCategoryRequest(string? Category);

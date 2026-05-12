@@ -74,3 +74,5 @@ public sealed record UpdateCategorizationRuleRequest(
     string MatchType,
     string Category,
     int Priority);
+
+public sealed record UpdateCategoryDto(string? Category);

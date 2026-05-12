@@ -10,4 +10,5 @@ public interface ITransactionRepository
     Task<bool> ExistsByExternalIdAsync(Guid bankAccountId, string externalTransactionId, CancellationToken cancellationToken = default);
     Task AddAsync(Transaction transaction, CancellationToken cancellationToken = default);
     Task AddRangeAsync(IEnumerable<Transaction> transactions, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Transaction transaction, CancellationToken cancellationToken = default);
 }
