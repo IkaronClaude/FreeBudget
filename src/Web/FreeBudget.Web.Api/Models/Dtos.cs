@@ -84,3 +84,37 @@ public sealed record CreateGroupDto(string Name, string? CreatorLabel);
 public sealed record RenameGroupDto(string Name);
 public sealed record AddGroupMemberDto(string Label, Guid? OwningUserId);
 public sealed record RenameGroupMemberDto(string Label);
+
+public sealed record ImportLayoutDto(
+    Guid? Id,
+    Guid BankAccountId,
+    string Name,
+    string DateColumn,
+    string DescriptionColumn,
+    string AmountColumn,
+    string? CurrencyColumn,
+    string? DirectionColumn,
+    Dictionary<string, string>? DirectionMappings,
+    string? ExternalIdColumn,
+    string? RunningBalanceColumn,
+    string? CategoryColumn,
+    string DateFormat,
+    bool HasHeaderRow,
+    string Delimiter,
+    string DefaultCurrencyCode);
+
+public sealed record UpsertImportLayoutInputDto(
+    string Name,
+    string DateColumn,
+    string DescriptionColumn,
+    string AmountColumn,
+    string? CurrencyColumn,
+    string? DirectionColumn,
+    Dictionary<string, string>? DirectionMappings,
+    string? ExternalIdColumn,
+    string? RunningBalanceColumn,
+    string? CategoryColumn,
+    string DateFormat,
+    bool HasHeaderRow,
+    string Delimiter,
+    string DefaultCurrencyCode);

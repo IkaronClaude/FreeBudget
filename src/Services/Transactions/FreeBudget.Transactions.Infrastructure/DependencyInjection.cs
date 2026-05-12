@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IImportBatchRepository, ImportBatchRepository>();
         services.AddScoped<ICategorizationRuleRepository, CategorizationRuleRepository>();
+        services.AddScoped<IImportLayoutRepository, ImportLayoutRepository>();
         services.AddSingleton<ICsvTransactionParser, CsvTransactionParser>();
         services.AddSingleton<ICategorizer, RuleCategorizer>();
 

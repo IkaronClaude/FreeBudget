@@ -2,7 +2,9 @@ using FreeBudget.Common.Infrastructure.Middleware;
 using FreeBudget.Transactions.Application;
 using FreeBudget.Transactions.Application.Commands;
 using FreeBudget.Transactions.Application.DTOs;
+using FreeBudget.Transactions.Application.Interfaces;
 using FreeBudget.Transactions.Application.Queries;
+using FreeBudget.Transactions.Domain.Entities;
 using FreeBudget.Transactions.Domain.Enums;
 using FreeBudget.Transactions.Infrastructure;
 using FreeBudget.Transactions.Infrastructure.Persistence;
@@ -39,17 +41,28 @@ app.MapPost("/api/transactions/import", async (
     Guid bankAccountId,
     string layout,
     IMediator mediator,
+    IImportLayoutRepository layoutRepository,
     CancellationToken ct) =>
 {
-    var importLayout = layout.ToLowerInvariant() switch
+    ImportLayout? importLayout;
+    if (string.Equals(layout, "saved", StringComparison.OrdinalIgnoreCase))
     {
-        "barclays" => BankLayouts.Barclays(Guid.Empty),
-        "wise" => BankLayouts.Wise(Guid.Empty),
-        _ => null,
-    };
-
-    if (importLayout is null)
-        return Results.BadRequest(new { Error = $"Unknown layout: '{layout}'. Supported: barclays, wise" });
+        var saved = await layoutRepository.GetByBankAccountIdAsync(bankAccountId, ct);
+        if (saved is null)
+            return Results.BadRequest(new { Error = "No saved import layout for this bank account." });
+        importLayout = ToImportLayout(saved);
+    }
+    else
+    {
+        importLayout = layout.ToLowerInvariant() switch
+        {
+            "barclays" => BankLayouts.Barclays(Guid.Empty),
+            "wise" => BankLayouts.Wise(Guid.Empty),
+            _ => null,
+        };
+        if (importLayout is null)
+            return Results.BadRequest(new { Error = $"Unknown layout: '{layout}'. Supported: barclays, wise, saved" });
+    }
 
     await using var stream = file.OpenReadStream();
     var command = new ImportCsvCommand(bankAccountId, stream, importLayout);
@@ -65,6 +78,61 @@ app.MapPost("/api/transactions/import", async (
         result.Value.SkippedDuplicates,
     });
 }).DisableAntiforgery();
+
+app.MapGet("/api/bank-accounts/{id:guid}/import-layout", async (
+    Guid id,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var layout = await mediator.Send(new GetImportLayoutQuery(id), ct);
+    return layout is null ? Results.NotFound() : Results.Ok(layout);
+});
+
+app.MapPut("/api/bank-accounts/{id:guid}/import-layout", async (
+    Guid id,
+    UpsertImportLayoutRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var dto = new ImportLayoutDto(
+        null, id, request.Name,
+        request.DateColumn, request.DescriptionColumn, request.AmountColumn,
+        request.CurrencyColumn, request.DirectionColumn, request.DirectionMappings,
+        request.ExternalIdColumn, request.RunningBalanceColumn, request.CategoryColumn,
+        request.DateFormat, request.HasHeaderRow, request.Delimiter, request.DefaultCurrencyCode);
+    var result = await mediator.Send(new UpsertImportLayoutCommand(id, request.CreatedByUserId, dto), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Ok(new { Id = result.Value });
+});
+
+app.MapDelete("/api/bank-accounts/{id:guid}/import-layout", async (
+    Guid id,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new DeleteImportLayoutCommand(id), ct);
+    if (result.IsFailure)
+        return Results.NotFound(new { result.Error });
+    return Results.NoContent();
+});
+
+app.MapGet("/api/import-layouts/presets", () =>
+{
+    static ImportLayoutDto Map(ImportLayout l, Guid bankAccountId) => new(
+        null, bankAccountId, l.Name,
+        l.DateColumn, l.DescriptionColumn, l.AmountColumn,
+        l.CurrencyColumn, l.DirectionColumn,
+        l.DirectionMappings is null ? null : new Dictionary<string, string>(l.DirectionMappings),
+        l.ExternalIdColumn, l.RunningBalanceColumn, l.CategoryColumn,
+        l.DateFormat, l.HasHeaderRow, l.Delimiter.ToString(), l.DefaultCurrencyCode);
+
+    return Results.Ok(new[]
+    {
+        Map(BankLayouts.Barclays(Guid.Empty), Guid.Empty),
+        Map(BankLayouts.Wise(Guid.Empty), Guid.Empty),
+    });
+});
 
 app.MapPost("/api/categorization-rules/apply", async (
     ApplyRulesRequest request,
@@ -194,7 +262,43 @@ app.MapGet("/api/reports/period-breakdown", async (
 
 await app.RunAsync();
 
+static ImportLayout ToImportLayout(ImportLayoutDefinition d) => new()
+{
+    Name = d.Name,
+    BankTypeHint = null,
+    DateColumn = d.DateColumn,
+    DescriptionColumn = d.DescriptionColumn,
+    AmountColumn = d.AmountColumn,
+    CurrencyColumn = d.CurrencyColumn,
+    DirectionColumn = d.DirectionColumn,
+    DirectionMappings = d.DirectionMappings.Count == 0 ? null : d.DirectionMappings,
+    ExternalIdColumn = d.ExternalIdColumn,
+    RunningBalanceColumn = d.RunningBalanceColumn,
+    CategoryColumn = d.CategoryColumn,
+    DateFormat = d.DateFormat,
+    HasHeaderRow = d.HasHeaderRow,
+    Delimiter = d.Delimiter.Length > 0 ? d.Delimiter[0] : ',',
+    DefaultCurrencyCode = d.DefaultCurrencyCode,
+    CreatedByUserId = d.CreatedByUserId,
+};
+
 record CreateRuleRequest(Guid UserId, string Pattern, string MatchType, string Category, int Priority = 0);
 record UpdateRuleRequest(string Pattern, string MatchType, string Category, int Priority);
 record UpdateCategoryRequest(string? Category);
 record ApplyRulesRequest(Guid UserId, IReadOnlyList<Guid> BankAccountIds);
+record UpsertImportLayoutRequest(
+    Guid CreatedByUserId,
+    string Name,
+    string DateColumn,
+    string DescriptionColumn,
+    string AmountColumn,
+    string? CurrencyColumn,
+    string? DirectionColumn,
+    Dictionary<string, string>? DirectionMappings,
+    string? ExternalIdColumn,
+    string? RunningBalanceColumn,
+    string? CategoryColumn,
+    string DateFormat,
+    bool HasHeaderRow,
+    string Delimiter,
+    string DefaultCurrencyCode);
