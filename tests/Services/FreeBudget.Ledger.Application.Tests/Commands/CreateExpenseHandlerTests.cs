@@ -13,8 +13,9 @@ public class CreateExpenseHandlerTests
     private readonly CreateExpenseHandler _handler;
 
     private static readonly Guid GroupId = Guid.NewGuid();
-    private static readonly Guid UserA = Guid.NewGuid();
-    private static readonly Guid UserB = Guid.NewGuid();
+    private static readonly Guid MemberA = Guid.NewGuid();
+    private static readonly Guid MemberB = Guid.NewGuid();
+    private static readonly Guid Creator = Guid.NewGuid();
     private static readonly DateTime Date = new(2024, 5, 15);
 
     public CreateExpenseHandlerTests()
@@ -25,7 +26,7 @@ public class CreateExpenseHandlerTests
     [Fact]
     public async Task Creates_expense_and_returns_id()
     {
-        var command = new CreateExpenseCommand(GroupId, UserA, UserB, 25m, "GBP", "Lunch", Date, UserA);
+        var command = new CreateExpenseCommand(GroupId, MemberA, MemberB, 25m, "GBP", "Lunch", Date, Creator);
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -34,8 +35,8 @@ public class CreateExpenseHandlerTests
         await _repo.Received(1).AddAsync(
             Arg.Is<LedgerEntry>(e =>
                 e.GroupId == GroupId &&
-                e.PaidByUserId == UserA &&
-                e.OwedByUserId == UserB &&
+                e.PaidByMemberId == MemberA &&
+                e.OwedByMemberId == MemberB &&
                 e.Amount.Amount == 25m &&
                 e.EntryType == LedgerEntryType.Expense),
             Arg.Any<CancellationToken>());
@@ -45,7 +46,7 @@ public class CreateExpenseHandlerTests
     public async Task Creates_expense_with_transaction_id()
     {
         var txnId = Guid.NewGuid();
-        var command = new CreateExpenseCommand(GroupId, UserA, UserB, 10m, "GBP", "Coffee", Date, UserA, txnId);
+        var command = new CreateExpenseCommand(GroupId, MemberA, MemberB, 10m, "GBP", "Coffee", Date, Creator, txnId);
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();

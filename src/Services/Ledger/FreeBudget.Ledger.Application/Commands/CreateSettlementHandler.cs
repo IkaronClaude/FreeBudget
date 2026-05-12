@@ -14,8 +14,8 @@ internal sealed class CreateSettlementHandler(ILedgerEntryRepository repository)
         var amount = new Money(request.Amount, request.CurrencyCode);
         var entry = LedgerEntry.CreateSettlement(
             request.GroupId,
-            request.PaidByUserId,
-            request.OwedByUserId,
+            request.PaidByMemberId,
+            request.OwedByMemberId,
             amount,
             request.Description,
             request.EntryDate,

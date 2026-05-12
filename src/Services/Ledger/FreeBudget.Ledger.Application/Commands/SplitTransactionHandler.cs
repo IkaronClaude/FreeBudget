@@ -17,13 +17,13 @@ internal sealed class SplitTransactionHandler(ILedgerEntryRepository repository)
         if (request.Participants is null || request.Participants.Count == 0)
             return Result<IReadOnlyList<Guid>>.Failure("At least one participant is required.");
 
-        if (request.Participants.Any(p => p.UserId == request.PaidByUserId))
+        if (request.Participants.Any(p => p.MemberId == request.PaidByMemberId))
             return Result<IReadOnlyList<Guid>>.Failure("Payer cannot be a participant in the split.");
 
         if (request.Participants.Any(p => p.Amount <= 0))
             return Result<IReadOnlyList<Guid>>.Failure("Participant amounts must be positive.");
 
-        if (request.Participants.Select(p => p.UserId).Distinct().Count() != request.Participants.Count)
+        if (request.Participants.Select(p => p.MemberId).Distinct().Count() != request.Participants.Count)
             return Result<IReadOnlyList<Guid>>.Failure("Participants must be unique.");
 
         var existing = await repository.GetByTransactionIdAsync(request.TransactionId, cancellationToken);
@@ -33,8 +33,8 @@ internal sealed class SplitTransactionHandler(ILedgerEntryRepository repository)
         var entries = request.Participants
             .Select(p => LedgerEntry.CreateExpense(
                 request.GroupId,
-                request.PaidByUserId,
-                p.UserId,
+                request.PaidByMemberId,
+                p.MemberId,
                 new Money(p.Amount, request.CurrencyCode),
                 request.Description,
                 request.EntryDate,

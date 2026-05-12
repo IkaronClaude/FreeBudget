@@ -5,7 +5,7 @@ namespace FreeBudget.Ledger.Application.Commands;
 
 public sealed record SplitTransactionCommand(
     Guid GroupId,
-    Guid PaidByUserId,
+    Guid PaidByMemberId,
     Guid TransactionId,
     string CurrencyCode,
     string Description,
@@ -13,4 +13,4 @@ public sealed record SplitTransactionCommand(
     Guid CreatedByUserId,
     IReadOnlyList<SplitParticipant> Participants) : IRequest<Result<IReadOnlyList<Guid>>>;
 
-public sealed record SplitParticipant(Guid UserId, decimal Amount);
+public sealed record SplitParticipant(Guid MemberId, decimal Amount);

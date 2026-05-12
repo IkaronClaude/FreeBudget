@@ -38,7 +38,7 @@ app.MapPost("/api/ledger/expenses", async (
     CancellationToken ct) =>
 {
     var command = new CreateExpenseCommand(
-        request.GroupId, request.PaidByUserId, request.OwedByUserId,
+        request.GroupId, request.PaidByMemberId, request.OwedByMemberId,
         request.Amount, request.CurrencyCode, request.Description,
         request.EntryDate, request.CreatedByUserId, request.TransactionId);
     var result = await mediator.Send(command, ct);
@@ -55,7 +55,7 @@ app.MapPost("/api/ledger/settlements", async (
     CancellationToken ct) =>
 {
     var command = new CreateSettlementCommand(
-        request.GroupId, request.PaidByUserId, request.OwedByUserId,
+        request.GroupId, request.PaidByMemberId, request.OwedByMemberId,
         request.Amount, request.CurrencyCode, request.Description,
         request.EntryDate, request.CreatedByUserId, request.TransactionId);
     var result = await mediator.Send(command, ct);
@@ -72,10 +72,10 @@ app.MapPost("/api/ledger/splits", async (
     CancellationToken ct) =>
 {
     var command = new SplitTransactionCommand(
-        request.GroupId, request.PaidByUserId, request.TransactionId,
+        request.GroupId, request.PaidByMemberId, request.TransactionId,
         request.CurrencyCode, request.Description, request.EntryDate,
         request.CreatedByUserId,
-        request.Participants.Select(p => new SplitParticipant(p.UserId, p.Amount)).ToList());
+        request.Participants.Select(p => new SplitParticipant(p.MemberId, p.Amount)).ToList());
     var result = await mediator.Send(command, ct);
 
     if (result.IsFailure)
@@ -107,8 +107,8 @@ app.MapGet("/api/ledger/entries", async (
     {
         e.Id,
         e.GroupId,
-        e.PaidByUserId,
-        e.OwedByUserId,
+        e.PaidByMemberId,
+        e.OwedByMemberId,
         Amount = e.Amount.Amount,
         CurrencyCode = e.Amount.CurrencyCode,
         e.Description,
@@ -126,8 +126,8 @@ app.MapGet("/api/ledger/balances", async (
     var balances = await mediator.Send(new GetGroupBalancesQuery(groupId), ct);
     return Results.Ok(balances.Select(b => new
     {
-        b.UserId,
-        b.OwesToUserId,
+        b.MemberId,
+        b.OwesToMemberId,
         Amount = b.NetAmount.Amount,
         CurrencyCode = b.NetAmount.CurrencyCode,
     }));
@@ -136,18 +136,18 @@ app.MapGet("/api/ledger/balances", async (
 await app.RunAsync();
 
 record CreateExpenseRequest(
-    Guid GroupId, Guid PaidByUserId, Guid OwedByUserId,
+    Guid GroupId, Guid PaidByMemberId, Guid OwedByMemberId,
     decimal Amount, string CurrencyCode, string Description,
     DateTime EntryDate, Guid CreatedByUserId, Guid? TransactionId = null);
 
 record CreateSettlementRequest(
-    Guid GroupId, Guid PaidByUserId, Guid OwedByUserId,
+    Guid GroupId, Guid PaidByMemberId, Guid OwedByMemberId,
     decimal Amount, string CurrencyCode, string Description,
     DateTime EntryDate, Guid CreatedByUserId, Guid? TransactionId = null);
 
 record SplitTransactionRequest(
-    Guid GroupId, Guid PaidByUserId, Guid TransactionId,
+    Guid GroupId, Guid PaidByMemberId, Guid TransactionId,
     string CurrencyCode, string Description, DateTime EntryDate,
     Guid CreatedByUserId, IReadOnlyList<SplitParticipantRequest> Participants);
 
-record SplitParticipantRequest(Guid UserId, decimal Amount);
+record SplitParticipantRequest(Guid MemberId, decimal Amount);
