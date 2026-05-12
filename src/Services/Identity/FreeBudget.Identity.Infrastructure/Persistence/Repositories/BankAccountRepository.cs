@@ -34,4 +34,10 @@ internal sealed class BankAccountRepository(IdentityDbContext context) : IBankAc
         context.BankAccounts.Update(bankAccount);
         await context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task DeleteAsync(BankAccount bankAccount, CancellationToken cancellationToken = default)
+    {
+        context.BankAccounts.Remove(bankAccount);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -27,4 +27,6 @@ public sealed class IdentityClient(HttpClient http)
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<List<BankAccountDto>>(cancellationToken: ct) ?? [];
     }
+
+    public HttpClient Http => http;
 }

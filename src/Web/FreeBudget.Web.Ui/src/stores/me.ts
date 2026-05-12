@@ -10,8 +10,9 @@ export const useMeStore = defineStore('me', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  async function load() {
-    if (loading.value || user.value) return;
+  async function load(force = false) {
+    if (loading.value) return;
+    if (!force && user.value) return;
     loading.value = true;
     error.value = null;
     try {
@@ -27,5 +28,7 @@ export const useMeStore = defineStore('me', () => {
     }
   }
 
-  return { user, groups, bankAccounts, loading, error, load };
+  const refresh = () => load(true);
+
+  return { user, groups, bankAccounts, loading, error, load, refresh };
 });
