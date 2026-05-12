@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, reactive } from 'vue';
+import { ref, watch, reactive, computed } from 'vue';
 import { useMeStore } from '../stores/me';
 import { api } from '../api/client';
 import type { TransactionListItem, ImportCsvResponse, RuleMatchType } from '../api/types';
@@ -24,6 +24,16 @@ interface EditState {
   saving: boolean;
 }
 const editing = ref<EditState | null>(null);
+
+const onlyUncategorized = ref(false);
+const visibleTransactions = computed(() =>
+  onlyUncategorized.value
+    ? transactions.value.filter(t => !t.category)
+    : transactions.value
+);
+const uncategorizedCount = computed(() =>
+  transactions.value.filter(t => !t.category).length
+);
 
 watch(
   () => me.bankAccounts,
@@ -169,9 +179,19 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
       <p v-if="error" class="text-red-600 text-sm">{{ error }}</p>
     </section>
 
+    <div class="flex items-center justify-between text-sm">
+      <label class="flex items-center gap-2">
+        <input v-model="onlyUncategorized" type="checkbox" />
+        <span>Show only uncategorized</span>
+      </label>
+      <span class="text-slate-500">
+        {{ uncategorizedCount }} uncategorized of {{ transactions.length }}
+      </span>
+    </div>
+
     <section class="bg-white rounded border border-slate-200 overflow-hidden">
       <div v-if="loading" class="p-4 text-slate-500">Loading...</div>
-      <table v-else-if="transactions.length" class="w-full text-sm">
+      <table v-else-if="visibleTransactions.length" class="w-full text-sm">
         <thead class="bg-slate-50 text-slate-600">
           <tr>
             <th class="text-left px-4 py-2">Date</th>
@@ -181,7 +201,7 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
           </tr>
         </thead>
         <tbody>
-          <template v-for="t in transactions" :key="t.id">
+          <template v-for="t in visibleTransactions" :key="t.id">
             <tr class="border-t border-slate-100">
               <td class="px-4 py-2 whitespace-nowrap">{{ new Date(t.transactionDate).toLocaleDateString() }}</td>
               <td class="px-4 py-2">{{ t.description }}</td>
@@ -252,7 +272,9 @@ const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWit
           </template>
         </tbody>
       </table>
-      <div v-else class="p-4 text-slate-500">No transactions for this account.</div>
+      <div v-else class="p-4 text-slate-500">
+        {{ onlyUncategorized && transactions.length ? 'Nothing uncategorized here.' : 'No transactions for this account.' }}
+      </div>
     </section>
   </div>
 </template>
