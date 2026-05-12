@@ -4,6 +4,7 @@ import TransactionsView from '../views/TransactionsView.vue';
 import ReportsView from '../views/ReportsView.vue';
 import RulesView from '../views/RulesView.vue';
 import AccountsView from '../views/AccountsView.vue';
+import GroupsView from '../views/GroupsView.vue';
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -12,6 +13,7 @@ export const router = createRouter({
     { path: '/transactions', name: 'transactions', component: TransactionsView },
     { path: '/reports', name: 'reports', component: ReportsView },
     { path: '/rules', name: 'rules', component: RulesView },
-    { path: '/accounts', name: 'accounts', component: AccountsView }
+    { path: '/accounts', name: 'accounts', component: AccountsView },
+    { path: '/groups', name: 'groups', component: GroupsView }
   ]
 });
