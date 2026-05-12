@@ -36,4 +36,10 @@ internal sealed class TransactionRepository(TransactionsDbContext context) : ITr
         await context.Transactions.AddRangeAsync(transactions, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task UpdateAsync(Transaction transaction, CancellationToken cancellationToken = default)
+    {
+        context.Transactions.Update(transaction);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }
