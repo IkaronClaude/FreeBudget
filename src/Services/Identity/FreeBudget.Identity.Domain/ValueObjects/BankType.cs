@@ -7,6 +7,7 @@ public sealed class BankType : ValueObject
     public static readonly BankType Barclays = new("Barclays");
     public static readonly BankType Wise = new("Wise");
     public static readonly BankType NatWest = new("NatWest");
+    public static readonly BankType Manual = new("Manual");
 
     private static readonly IReadOnlyDictionary<string, BankType> KnownTypes =
         new Dictionary<string, BankType>(StringComparer.OrdinalIgnoreCase)
@@ -14,6 +15,7 @@ public sealed class BankType : ValueObject
             [Barclays.Name] = Barclays,
             [Wise.Name] = Wise,
             [NatWest.Name] = NatWest,
+            [Manual.Name] = Manual,
         };
 
     private BankType(string name) => Name = name;
