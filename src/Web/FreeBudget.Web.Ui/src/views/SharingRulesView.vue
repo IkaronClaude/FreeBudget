@@ -149,10 +149,10 @@ async function applyToExisting() {
   applyMessage.value = null;
   error.value = null;
   try {
-    const { data } = await api.post<{ examined: number; matched: number; split: number; skipped: number }>(
+    const { data } = await api.post<{ examined: number; matched: number; split: number; skipped: number; transfersPaired: number }>(
       '/sharing-rules/apply'
     );
-    applyMessage.value = `Examined ${data.examined}, matched ${data.matched}, applied ${data.split}, skipped ${data.skipped} (already linked or invalid).`;
+    applyMessage.value = `Examined ${data.examined}, matched ${data.matched}, applied ${data.split}, skipped ${data.skipped}. Transfer pairs found: ${data.transfersPaired}.`;
   } catch (e: any) {
     error.value = e?.response?.data?.error ?? (e instanceof Error ? e.message : 'Apply failed');
   } finally {
