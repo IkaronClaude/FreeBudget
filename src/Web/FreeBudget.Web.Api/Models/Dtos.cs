@@ -55,3 +55,22 @@ public sealed record PeriodBreakdownItem(
     int TransactionCount);
 
 public sealed record ImportCsvResponse(Guid ImportBatchId, int TransactionCount, int SkippedDuplicates);
+
+public sealed record CategorizationRuleDto(
+    Guid Id,
+    string Pattern,
+    string MatchType,
+    string Category,
+    int Priority);
+
+public sealed record CreateCategorizationRuleRequest(
+    string Pattern,
+    string MatchType,
+    string Category,
+    int Priority);
+
+public sealed record UpdateCategorizationRuleRequest(
+    string Pattern,
+    string MatchType,
+    string Category,
+    int Priority);

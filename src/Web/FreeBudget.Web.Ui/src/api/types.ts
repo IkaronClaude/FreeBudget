@@ -68,3 +68,13 @@ export interface ImportCsvResponse {
   transactionCount: number;
   skippedDuplicates: number;
 }
+
+export type RuleMatchType = 'Contains' | 'Exact' | 'StartsWith' | 'EndsWith';
+
+export interface CategorizationRule {
+  id: string;
+  pattern: string;
+  matchType: RuleMatchType;
+  category: string;
+  priority: number;
+}
