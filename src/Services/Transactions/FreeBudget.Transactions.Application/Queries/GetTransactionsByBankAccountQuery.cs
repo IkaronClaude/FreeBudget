@@ -33,7 +33,8 @@ internal sealed class GetTransactionsByBankAccountHandler(
                 t.Amount.CurrencyCode,
                 t.Direction.ToString(),
                 t.Category,
-                t.ExternalTransactionId))
+                t.ExternalTransactionId,
+                t.MatchedTransactionId))
             .ToList();
     }
 }

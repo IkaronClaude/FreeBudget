@@ -9,4 +9,5 @@ public sealed record TransactionListItem(
     string CurrencyCode,
     string Direction,
     string? Category,
-    string? ExternalTransactionId);
+    string? ExternalTransactionId,
+    Guid? MatchedTransactionId);

@@ -79,6 +79,12 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
 
         builder.HasIndex(t => t.ImportBatchId);
 
+        builder.Property(t => t.MatchedTransactionId)
+            .HasColumnName("matched_transaction_id");
+
+        builder.HasIndex(t => t.MatchedTransactionId)
+            .HasFilter("matched_transaction_id IS NOT NULL");
+
         builder.HasIndex(t => new { t.BankAccountId, t.ExternalTransactionId })
             .IsUnique()
             .HasFilter("external_transaction_id IS NOT NULL");
