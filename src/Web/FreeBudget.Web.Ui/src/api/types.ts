@@ -4,10 +4,19 @@ export interface User {
   displayName: string;
 }
 
+export interface GroupMember {
+  id: string;
+  groupId: string;
+  label: string;
+  owningUserId?: string | null;
+  role: string;
+}
+
 export interface Group {
   id: string;
   name: string;
-  role: string;
+  createdByUserId: string;
+  members: GroupMember[];
 }
 
 export interface BankAccount {

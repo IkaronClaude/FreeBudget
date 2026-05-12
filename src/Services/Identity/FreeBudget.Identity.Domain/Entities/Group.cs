@@ -5,19 +5,20 @@ namespace FreeBudget.Identity.Domain.Entities;
 
 public sealed class Group : AggregateRoot<Guid>, IAuditableEntity
 {
-    private readonly List<GroupMembership> _memberships = [];
+    private readonly List<GroupMember> _members = [];
 
     private Group() { }
 
     public string Name { get; private set; } = null!;
     public Guid CreatedByUserId { get; private init; }
-    public IReadOnlyList<GroupMembership> Memberships => _memberships.AsReadOnly();
+    public IReadOnlyList<GroupMember> Members => _members.AsReadOnly();
     public DateTime CreatedAt { get; set; }
     public DateTime? ModifiedAt { get; set; }
 
-    public static Group Create(string name, Guid createdByUserId)
+    public static Group Create(string name, Guid createdByUserId, string creatorLabel = "me")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(creatorLabel);
 
         if (createdByUserId == Guid.Empty)
             throw new ArgumentException("Creator user ID cannot be empty.", nameof(createdByUserId));
@@ -29,35 +30,39 @@ public sealed class Group : AggregateRoot<Guid>, IAuditableEntity
             CreatedByUserId = createdByUserId,
         };
 
-        group._memberships.Add(new GroupMembership(group.Id, createdByUserId, GroupRole.Admin));
+        group._members.Add(new GroupMember(group.Id, creatorLabel, createdByUserId, GroupRole.Admin));
         group.RaiseDomainEvent(new GroupCreatedEvent(group.Id, createdByUserId));
 
         return group;
     }
 
-    public GroupMembership AddMember(Guid userId, GroupRole role = GroupRole.Member)
+    public GroupMember AddMember(string label, Guid? owningUserId = null, GroupRole role = GroupRole.Member)
     {
-        if (userId == Guid.Empty)
-            throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(label);
 
-        if (_memberships.Any(m => m.UserId == userId))
-            throw new InvalidOperationException($"User '{userId}' is already a member of this group.");
+        if (owningUserId.HasValue && _members.Any(m => m.OwningUserId == owningUserId.Value))
+            throw new InvalidOperationException(
+                $"User '{owningUserId}' is already linked to a member of this group.");
 
-        var membership = new GroupMembership(Id, userId, role);
-        _memberships.Add(membership);
+        if (_members.Any(m => string.Equals(m.Label, label.Trim(), StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException(
+                $"A member with label '{label}' already exists in this group.");
 
-        return membership;
+        var member = new GroupMember(Id, label, owningUserId, role);
+        _members.Add(member);
+
+        return member;
     }
 
-    public void RemoveMember(Guid userId)
+    public void RemoveMember(Guid memberId)
     {
-        if (userId == CreatedByUserId)
+        var member = _members.FirstOrDefault(m => m.Id == memberId)
+            ?? throw new InvalidOperationException($"Member '{memberId}' is not in this group.");
+
+        if (member.OwningUserId == CreatedByUserId)
             throw new InvalidOperationException("Cannot remove the group creator.");
 
-        var membership = _memberships.FirstOrDefault(m => m.UserId == userId)
-            ?? throw new InvalidOperationException($"User '{userId}' is not a member of this group.");
-
-        _memberships.Remove(membership);
+        _members.Remove(member);
     }
 
     public void Rename(string newName)
