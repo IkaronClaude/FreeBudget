@@ -10,6 +10,7 @@ public sealed record CreateSharingRuleCommand(
     Guid UserId,
     string Pattern,
     RuleMatchType MatchType,
+    LedgerEntryKind EntryType,
     int Priority,
     Guid GroupId,
     Guid PaidByMemberId,
@@ -23,7 +24,7 @@ internal sealed class CreateSharingRuleHandler(ISharingRuleRepository repository
         try
         {
             var rule = SharingRule.Create(
-                request.UserId, request.Pattern, request.MatchType,
+                request.UserId, request.Pattern, request.MatchType, request.EntryType,
                 request.GroupId, request.PaidByMemberId, request.ParticipantMemberIds, request.Priority);
             await repository.AddAsync(rule, cancellationToken);
             return Result<Guid>.Success(rule.Id);

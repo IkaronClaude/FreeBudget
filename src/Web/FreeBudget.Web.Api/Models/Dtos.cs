@@ -128,6 +128,7 @@ public sealed record SharingRuleDto(
     Guid Id,
     string Pattern,
     string MatchType,
+    string EntryType,
     int Priority,
     Guid GroupId,
     Guid PaidByMemberId,
@@ -136,6 +137,7 @@ public sealed record SharingRuleDto(
 public sealed record CreateSharingRuleInputDto(
     string Pattern,
     string MatchType,
+    string? EntryType,
     int Priority,
     Guid GroupId,
     Guid PaidByMemberId,
@@ -144,6 +146,7 @@ public sealed record CreateSharingRuleInputDto(
 public sealed record UpdateSharingRuleInputDto(
     string Pattern,
     string MatchType,
+    string? EntryType,
     int Priority,
     Guid GroupId,
     Guid PaidByMemberId,
