@@ -79,6 +79,16 @@ export interface CategorizationRule {
   priority: number;
 }
 
+export interface SharingRule {
+  id: string;
+  pattern: string;
+  matchType: RuleMatchType;
+  priority: number;
+  groupId: string;
+  paidByMemberId: string;
+  participantMemberIds: string[];
+}
+
 export interface SplitParticipantInput {
   memberId: string;
   amount: number;

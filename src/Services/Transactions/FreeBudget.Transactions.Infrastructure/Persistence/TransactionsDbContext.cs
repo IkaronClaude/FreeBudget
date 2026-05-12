@@ -11,6 +11,7 @@ public sealed class TransactionsDbContext(DbContextOptions<TransactionsDbContext
     public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
     public DbSet<CategorizationRule> CategorizationRules => Set<CategorizationRule>();
     public DbSet<ImportLayoutDefinition> ImportLayouts => Set<ImportLayoutDefinition>();
+    public DbSet<SharingRule> SharingRules => Set<SharingRule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
