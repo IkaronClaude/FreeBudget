@@ -33,6 +33,8 @@ const search = ref('');
 const categoryFilter = ref<string>(''); // '' = all, '__uncategorized__' = no category, otherwise specific category
 const directionFilter = ref<'all' | 'Credit' | 'Debit'>('all');
 const showTransfers = ref(true);
+const fromDate = ref<string>('');
+const toDate = ref<string>('');
 
 const distinctCategories = computed<string[]>(() => {
   const set = new Set<string>();
@@ -44,6 +46,9 @@ const distinctCategories = computed<string[]>(() => {
 
 const visibleTransactions = computed(() => {
   const q = search.value.trim().toLowerCase();
+  const fromMs = fromDate.value ? new Date(fromDate.value).getTime() : null;
+  // toDate is inclusive end-of-day
+  const toMs = toDate.value ? new Date(toDate.value).getTime() + 24 * 60 * 60 * 1000 - 1 : null;
   return transactions.value.filter(t => {
     if (onlyUncategorized.value && t.category) return false;
     if (!showTransfers.value && t.matchedTransactionId) return false;
@@ -51,8 +56,30 @@ const visibleTransactions = computed(() => {
     if (categoryFilter.value === '__uncategorized__' && t.category) return false;
     if (categoryFilter.value && categoryFilter.value !== '__uncategorized__' && t.category !== categoryFilter.value) return false;
     if (directionFilter.value !== 'all' && t.direction !== directionFilter.value) return false;
+    if (fromMs !== null || toMs !== null) {
+      const txnMs = new Date(t.transactionDate).getTime();
+      if (fromMs !== null && txnMs < fromMs) return false;
+      if (toMs !== null && txnMs > toMs) return false;
+    }
     return true;
   });
+});
+
+const visibleTotals = computed(() => {
+  let credit = 0;
+  let debit = 0;
+  const currencies = new Set<string>();
+  for (const t of visibleTransactions.value) {
+    currencies.add(t.currencyCode);
+    if (t.direction === 'Credit') credit += t.amount;
+    else debit += t.amount;
+  }
+  return {
+    credit,
+    debit,
+    net: credit - debit,
+    currency: currencies.size === 1 ? [...currencies][0] : '',
+  };
 });
 
 const uncategorizedCount = computed(() =>
@@ -212,6 +239,14 @@ async function matchTransfers() {
             <option value="Credit">Credit</option>
           </select>
         </label>
+        <label class="flex flex-col">
+          <span class="text-slate-600 mb-1">From</span>
+          <input v-model="fromDate" type="date" class="border border-slate-300 rounded px-3 py-1" />
+        </label>
+        <label class="flex flex-col">
+          <span class="text-slate-600 mb-1">To</span>
+          <input v-model="toDate" type="date" class="border border-slate-300 rounded px-3 py-1" />
+        </label>
         <label class="flex items-center gap-2 pb-1">
           <input v-model="showTransfers" type="checkbox" />
           <span>Show transfers</span>
@@ -344,9 +379,23 @@ async function matchTransfers() {
             </tr>
           </template>
         </tbody>
+        <tfoot v-if="visibleTransactions.length" class="bg-slate-50 text-sm font-medium">
+          <tr class="border-t-2 border-slate-200">
+            <td class="px-4 py-2" colspan="2">Totals ({{ visibleTransactions.length }} txns)</td>
+            <td class="px-4 py-2 text-right tabular-nums text-slate-600">
+              <span class="text-green-700">+{{ visibleTotals.credit.toFixed(2) }}</span>
+              <span class="text-slate-400 mx-1">/</span>
+              <span class="text-red-700">−{{ visibleTotals.debit.toFixed(2) }}</span>
+            </td>
+            <td class="px-4 py-2 text-right tabular-nums" :class="visibleTotals.net >= 0 ? 'text-green-700' : 'text-red-700'">
+              {{ visibleTotals.net >= 0 ? '+' : '' }}{{ visibleTotals.net.toFixed(2) }} {{ visibleTotals.currency || '(mixed)' }}
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
       <div v-else class="p-4 text-slate-500">
-        {{ onlyUncategorized && transactions.length ? 'Nothing uncategorized here.' : 'No transactions for this account.' }}
+        {{ onlyUncategorized && transactions.length ? 'Nothing uncategorized here.' : 'No transactions match the current filters.' }}
       </div>
     </section>
   </div>
