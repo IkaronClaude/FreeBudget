@@ -86,6 +86,71 @@ const uncategorizedCount = computed(() =>
   transactions.value.filter(t => !t.category).length
 );
 
+const selectedIds = ref<Set<string>>(new Set());
+const bulkCategory = ref('');
+const bulkApplying = ref(false);
+const bulkMessage = ref<string | null>(null);
+
+const allVisibleSelected = computed(() =>
+  visibleTransactions.value.length > 0 &&
+  visibleTransactions.value.every(t => selectedIds.value.has(t.id))
+);
+const someVisibleSelected = computed(() =>
+  !allVisibleSelected.value &&
+  visibleTransactions.value.some(t => selectedIds.value.has(t.id))
+);
+
+function toggleRow(txnId: string) {
+  const next = new Set(selectedIds.value);
+  if (next.has(txnId)) next.delete(txnId);
+  else next.add(txnId);
+  selectedIds.value = next;
+}
+
+function toggleSelectAllVisible() {
+  const next = new Set(selectedIds.value);
+  if (allVisibleSelected.value) {
+    for (const t of visibleTransactions.value) next.delete(t.id);
+  } else {
+    for (const t of visibleTransactions.value) next.add(t.id);
+  }
+  selectedIds.value = next;
+}
+
+function clearSelection() {
+  selectedIds.value = new Set();
+  bulkMessage.value = null;
+}
+
+async function applyBulkCategory(clear = false) {
+  if (selectedIds.value.size === 0) return;
+  bulkApplying.value = true;
+  bulkMessage.value = null;
+  error.value = null;
+  const ids = [...selectedIds.value];
+  const category = clear ? null : bulkCategory.value.trim();
+  if (!clear && !category) {
+    bulkApplying.value = false;
+    return;
+  }
+  try {
+    const { data } = await api.post<{ updated: number; notFound: number }>(
+      '/transactions/bulk-category',
+      { transactionIds: ids, category },
+    );
+    const label = clear ? 'cleared category on' : `set "${category}" on`;
+    bulkMessage.value = `${label} ${data.updated} transaction${data.updated === 1 ? '' : 's'}` +
+      (data.notFound ? ` (${data.notFound} not found)` : '') + '.';
+    if (!clear) bulkCategory.value = '';
+    selectedIds.value = new Set();
+    await loadTransactions();
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Bulk update failed';
+  } finally {
+    bulkApplying.value = false;
+  }
+}
+
 watch(
   () => me.bankAccounts,
   (accs) => {
@@ -277,11 +342,47 @@ async function matchTransfers() {
     </div>
     <p v-if="matchMessage" class="text-green-700 text-sm">{{ matchMessage }}</p>
 
+    <section
+      v-if="selectedIds.size > 0"
+      class="sticky top-0 z-10 bg-blue-50 border border-blue-200 rounded p-3 flex flex-wrap items-center gap-3 text-sm shadow-sm"
+    >
+      <span class="font-medium text-blue-900">{{ selectedIds.size }} selected</span>
+      <input
+        v-model="bulkCategory"
+        type="text"
+        placeholder="Category to apply"
+        class="border border-slate-300 rounded px-3 py-1 flex-1 min-w-[10rem] max-w-md"
+        :disabled="bulkApplying"
+        @keydown.enter="applyBulkCategory(false)"
+      />
+      <button
+        @click="applyBulkCategory(false)"
+        :disabled="bulkApplying || !bulkCategory.trim()"
+        class="bg-blue-600 text-white px-3 py-1 rounded disabled:bg-slate-300"
+      >{{ bulkApplying ? 'Applying…' : 'Apply category' }}</button>
+      <button
+        @click="applyBulkCategory(true)"
+        :disabled="bulkApplying"
+        class="border border-slate-300 px-3 py-1 rounded disabled:text-slate-400"
+      >Clear category</button>
+      <button @click="clearSelection" class="text-slate-600 hover:underline">Cancel</button>
+    </section>
+    <p v-if="bulkMessage" class="text-green-700 text-sm">{{ bulkMessage }}</p>
+
     <section class="bg-white rounded border border-slate-200 overflow-hidden">
       <div v-if="loading" class="p-4 text-slate-500">Loading...</div>
       <table v-else-if="visibleTransactions.length" class="w-full text-sm">
         <thead class="bg-slate-50 text-slate-600">
           <tr>
+            <th class="px-3 py-2 w-8">
+              <input
+                type="checkbox"
+                :checked="allVisibleSelected"
+                :indeterminate.prop="someVisibleSelected"
+                @change="toggleSelectAllVisible"
+                aria-label="Select all visible"
+              />
+            </th>
             <th class="text-left px-4 py-2">Date</th>
             <th class="text-left px-4 py-2">Description</th>
             <th class="text-left px-4 py-2">Category</th>
@@ -291,7 +392,15 @@ async function matchTransfers() {
         </thead>
         <tbody>
           <template v-for="t in visibleTransactions" :key="t.id">
-            <tr class="border-t border-slate-100">
+            <tr class="border-t border-slate-100" :class="selectedIds.has(t.id) ? 'bg-blue-50' : ''">
+              <td class="px-3 py-2">
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.has(t.id)"
+                  @change="toggleRow(t.id)"
+                  :aria-label="`Select ${t.description}`"
+                />
+              </td>
               <td class="px-4 py-2 whitespace-nowrap">{{ new Date(t.transactionDate).toLocaleDateString() }}</td>
               <td class="px-4 py-2">
                 {{ t.description }}
@@ -319,7 +428,7 @@ async function matchTransfers() {
               </td>
             </tr>
             <tr v-if="sharingTxnId === t.id">
-              <td colspan="5" class="p-0">
+              <td colspan="6" class="p-0">
                 <SplitDialog
                   :transaction="t"
                   @close="sharingTxnId = null"
@@ -328,7 +437,7 @@ async function matchTransfers() {
               </td>
             </tr>
             <tr v-if="editing?.txnId === t.id" class="bg-blue-50 border-t border-blue-200">
-              <td colspan="5" class="px-4 py-3">
+              <td colspan="6" class="px-4 py-3">
                 <div class="grid gap-3 md:grid-cols-[1fr_auto_auto] items-end">
                   <label class="flex flex-col text-sm">
                     <span class="text-slate-600 mb-1">Category</span>
@@ -381,7 +490,7 @@ async function matchTransfers() {
         </tbody>
         <tfoot v-if="visibleTransactions.length" class="bg-slate-50 text-sm font-medium">
           <tr class="border-t-2 border-slate-200">
-            <td class="px-4 py-2" colspan="2">Totals ({{ visibleTransactions.length }} txns)</td>
+            <td class="px-4 py-2" colspan="3">Totals ({{ visibleTransactions.length }} txns)</td>
             <td class="px-4 py-2 text-right tabular-nums text-slate-600">
               <span class="text-green-700">+{{ visibleTotals.credit.toFixed(2) }}</span>
               <span class="text-slate-400 mx-1">/</span>

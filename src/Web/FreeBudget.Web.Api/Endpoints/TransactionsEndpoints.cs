@@ -67,6 +67,16 @@ public static class TransactionsEndpoints
                 : Results.StatusCode((int)response.StatusCode);
         });
 
+        app.MapPost("/api/transactions/bulk-category", async (
+            BulkCategoryDto body,
+            TransactionsClient client,
+            CancellationToken ct) =>
+        {
+            var response = await client.Http.PostAsJsonAsync("/api/transactions/bulk-category", body, ct);
+            var content = await response.Content.ReadAsStringAsync(ct);
+            return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);
+        });
+
         app.MapPost("/api/transactions/import", async (
             HttpRequest request,
             Guid bankAccountId,
