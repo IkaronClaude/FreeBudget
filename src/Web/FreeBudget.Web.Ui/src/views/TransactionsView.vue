@@ -29,11 +29,32 @@ const editing = ref<EditState | null>(null);
 const sharingTxnId = ref<string | null>(null);
 
 const onlyUncategorized = ref(false);
-const visibleTransactions = computed(() =>
-  onlyUncategorized.value
-    ? transactions.value.filter(t => !t.category)
-    : transactions.value
-);
+const search = ref('');
+const categoryFilter = ref<string>(''); // '' = all, '__uncategorized__' = no category, otherwise specific category
+const directionFilter = ref<'all' | 'Credit' | 'Debit'>('all');
+const showTransfers = ref(true);
+
+const distinctCategories = computed<string[]>(() => {
+  const set = new Set<string>();
+  for (const t of transactions.value) {
+    if (t.category) set.add(t.category);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b));
+});
+
+const visibleTransactions = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  return transactions.value.filter(t => {
+    if (onlyUncategorized.value && t.category) return false;
+    if (!showTransfers.value && t.matchedTransactionId) return false;
+    if (q && !t.description.toLowerCase().includes(q)) return false;
+    if (categoryFilter.value === '__uncategorized__' && t.category) return false;
+    if (categoryFilter.value && categoryFilter.value !== '__uncategorized__' && t.category !== categoryFilter.value) return false;
+    if (directionFilter.value !== 'all' && t.direction !== directionFilter.value) return false;
+    return true;
+  });
+});
+
 const uncategorizedCount = computed(() =>
   transactions.value.filter(t => !t.category).length
 );
@@ -169,15 +190,44 @@ async function matchTransfers() {
       @imported="loadTransactions"
     />
 
+    <section class="bg-white rounded border border-slate-200 p-3 space-y-2 text-sm">
+      <div class="flex flex-wrap gap-3 items-end">
+        <label class="flex flex-col flex-1 min-w-[12rem]">
+          <span class="text-slate-600 mb-1">Search description</span>
+          <input v-model="search" type="text" placeholder="e.g. TESCO" class="border border-slate-300 rounded px-3 py-1" />
+        </label>
+        <label class="flex flex-col">
+          <span class="text-slate-600 mb-1">Category</span>
+          <select v-model="categoryFilter" class="border border-slate-300 rounded px-3 py-1 min-w-[10rem]">
+            <option value="">All</option>
+            <option value="__uncategorized__">— Uncategorized —</option>
+            <option v-for="c in distinctCategories" :key="c" :value="c">{{ c }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col">
+          <span class="text-slate-600 mb-1">Direction</span>
+          <select v-model="directionFilter" class="border border-slate-300 rounded px-3 py-1">
+            <option value="all">All</option>
+            <option value="Debit">Debit</option>
+            <option value="Credit">Credit</option>
+          </select>
+        </label>
+        <label class="flex items-center gap-2 pb-1">
+          <input v-model="showTransfers" type="checkbox" />
+          <span>Show transfers</span>
+        </label>
+        <label class="flex items-center gap-2 pb-1">
+          <input v-model="onlyUncategorized" type="checkbox" />
+          <span>Uncategorized only</span>
+        </label>
+      </div>
+    </section>
+
     <div class="flex items-center justify-between gap-3 text-sm">
-      <label class="flex items-center gap-2">
-        <input v-model="onlyUncategorized" type="checkbox" />
-        <span>Show only uncategorized</span>
-      </label>
+      <span class="text-slate-500">
+        Showing {{ visibleTransactions.length }} of {{ transactions.length }} • {{ uncategorizedCount }} uncategorized
+      </span>
       <div class="flex items-center gap-3">
-        <span class="text-slate-500">
-          {{ uncategorizedCount }} uncategorized of {{ transactions.length }}
-        </span>
         <select v-model="matchScope" class="border border-slate-300 rounded px-2 py-1 text-sm">
           <option value="">My accounts</option>
           <option v-for="g in me.groups" :key="g.id" :value="g.id">In group: {{ g.name }}</option>
