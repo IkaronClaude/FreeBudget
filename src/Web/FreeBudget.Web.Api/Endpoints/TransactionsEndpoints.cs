@@ -72,7 +72,10 @@ public static class TransactionsEndpoints
             Guid bankAccountId,
             string layout,
             string? currencyMap,
+            ICurrentUserResolver currentUser,
+            IdentityClient identity,
             TransactionsClient client,
+            LedgerClient ledger,
             CancellationToken ct) =>
         {
             if (!request.HasFormContentType)
@@ -95,6 +98,24 @@ public static class TransactionsEndpoints
                 url += $"&currencyMap={Uri.EscapeDataString(currencyMap)}";
             var response = await client.Http.PostAsync(url, content, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+                return Results.Content(body, response.Content.Headers.ContentType?.MediaType ?? "application/json", statusCode: (int)response.StatusCode);
+
+            // After a successful import, opportunistically apply sharing rules and
+            // run the transfer matcher so new transactions auto-categorise, auto-share,
+            // and pair with their counterparts in one shot. Failures are ignored — the
+            // import itself already succeeded.
+            try
+            {
+                var me = await currentUser.GetAsync(ct);
+                await SharingRulesEndpoints.RunApplyAsync(me.Id, identity, client, ledger, ct);
+            }
+            catch
+            {
+                // ignore
+            }
+
             return Results.Content(body, response.Content.Headers.ContentType?.MediaType ?? "application/json", statusCode: (int)response.StatusCode);
         }).DisableAntiforgery();
 
