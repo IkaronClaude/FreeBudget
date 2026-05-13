@@ -2,18 +2,38 @@
 import { ref, reactive } from 'vue';
 import { useMeStore } from '../stores/me';
 import { api } from '../api/client';
-import type { Group, GroupMember } from '../api/types';
+import type { Group, GroupMember, User } from '../api/types';
 
 const me = useMeStore();
 const error = ref<string | null>(null);
 
 const newGroup = reactive({ name: '', saving: false });
 const renamingGroup = ref<{ id: string; name: string } | null>(null);
-const newMember = reactive<Record<string, string>>({});
+const newMember = reactive<Record<string, { mode: 'placeholder' | 'invite'; label: string; email: string; busy: boolean }>>({});
 const renamingMember = ref<{ groupId: string; memberId: string; label: string } | null>(null);
+const linkingMember = ref<{ groupId: string; memberId: string; email: string; busy: boolean } | null>(null);
+
+function rowState(groupId: string) {
+  if (!newMember[groupId]) {
+    newMember[groupId] = { mode: 'placeholder', label: '', email: '', busy: false };
+  }
+  return newMember[groupId];
+}
 
 async function refresh() {
   await me.refresh();
+}
+
+async function lookupUserByEmail(email: string): Promise<User | null> {
+  try {
+    const res = await api.get<User>('/users/lookup', { params: { email } });
+    return res.data;
+  } catch (e: unknown) {
+    type StatusErr = { response?: { status?: number } };
+    const status = (e as StatusErr)?.response?.status;
+    if (status === 404) return null;
+    throw e;
+  }
 }
 
 async function createGroup() {
@@ -56,15 +76,43 @@ async function deleteGroup(group: Group) {
   }
 }
 
-async function addMember(group: Group) {
-  const label = (newMember[group.id] ?? '').trim();
+async function addPlaceholder(group: Group) {
+  const state = rowState(group.id);
+  const label = state.label.trim();
   if (!label) return;
+  state.busy = true;
   try {
     await api.post(`/groups/${group.id}/members`, { label, owningUserId: null });
-    newMember[group.id] = '';
+    state.label = '';
     await refresh();
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Add member failed';
+  } finally {
+    state.busy = false;
+  }
+}
+
+async function inviteByEmail(group: Group) {
+  const state = rowState(group.id);
+  const email = state.email.trim();
+  if (!email) return;
+  state.busy = true;
+  error.value = null;
+  try {
+    const user = await lookupUserByEmail(email);
+    if (!user) {
+      error.value = `No user with email "${email}". Ask them to sign up first, or add a placeholder you can link later.`;
+      return;
+    }
+    const label = state.label.trim() || user.displayName;
+    await api.post(`/groups/${group.id}/members`, { label, owningUserId: user.id });
+    state.email = '';
+    state.label = '';
+    await refresh();
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Invite failed';
+  } finally {
+    state.busy = false;
   }
 }
 
@@ -94,17 +142,42 @@ async function deleteMember(group: Group, member: GroupMember) {
   }
 }
 
-async function linkMemberToMe(group: Group, member: GroupMember) {
+async function linkPlaceholderToMe(group: Group, member: GroupMember) {
   if (!me.user) return;
   try {
-    await api.post(`/groups/${group.id}/members`, {
-      label: member.label,
+    await api.post(`/groups/${group.id}/members/${member.id}/link`, {
       owningUserId: me.user.id,
     });
-    await api.delete(`/groups/${group.id}/members/${member.id}`);
     await refresh();
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Link failed';
+  }
+}
+
+function startLinkByEmail(group: Group, member: GroupMember) {
+  linkingMember.value = { groupId: group.id, memberId: member.id, email: '', busy: false };
+}
+
+async function saveLinkByEmail() {
+  if (!linkingMember.value) return;
+  const { groupId, memberId, email } = linkingMember.value;
+  const trimmed = email.trim();
+  if (!trimmed) return;
+  linkingMember.value.busy = true;
+  error.value = null;
+  try {
+    const user = await lookupUserByEmail(trimmed);
+    if (!user) {
+      error.value = `No user with email "${trimmed}".`;
+      return;
+    }
+    await api.post(`/groups/${groupId}/members/${memberId}/link`, { owningUserId: user.id });
+    linkingMember.value = null;
+    await refresh();
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Link failed';
+  } finally {
+    if (linkingMember.value) linkingMember.value.busy = false;
   }
 }
 </script>
@@ -169,7 +242,7 @@ async function linkMemberToMe(group: Group, member: GroupMember) {
             <th class="text-left px-4 py-2">Label</th>
             <th class="text-left px-4 py-2 w-32">Role</th>
             <th class="text-left px-4 py-2 w-48">Linked to</th>
-            <th class="text-right px-4 py-2 w-56"></th>
+            <th class="text-right px-4 py-2 w-72"></th>
           </tr>
         </thead>
         <tbody>
@@ -197,30 +270,84 @@ async function linkMemberToMe(group: Group, member: GroupMember) {
               <span v-else class="italic text-slate-400">placeholder</span>
             </td>
             <td class="px-4 py-2 text-right space-x-3 whitespace-nowrap">
-              <button
-                v-if="!m.owningUserId"
-                @click="linkMemberToMe(g, m)"
-                class="text-blue-600 hover:underline"
-              >Link to me</button>
-              <button v-if="renamingMember?.memberId !== m.id" @click="startRenameMember(g, m)" class="text-blue-600 hover:underline">Rename</button>
-              <button v-if="renamingMember?.memberId !== m.id" @click="deleteMember(g, m)" class="text-red-600 hover:underline">Remove</button>
+              <template v-if="linkingMember?.memberId === m.id">
+                <div class="flex gap-2 items-center justify-end">
+                  <input
+                    v-model="linkingMember.email"
+                    type="email"
+                    placeholder="user@example.com"
+                    class="border border-slate-300 rounded px-3 py-1 text-sm w-56"
+                    :disabled="linkingMember.busy"
+                    @keydown.enter="saveLinkByEmail"
+                    @keydown.escape="linkingMember = null"
+                  />
+                  <button @click="saveLinkByEmail" :disabled="linkingMember.busy" class="text-blue-600 hover:underline disabled:text-slate-400">Link</button>
+                  <button @click="linkingMember = null" class="text-slate-600 hover:underline">Cancel</button>
+                </div>
+              </template>
+              <template v-else>
+                <button
+                  v-if="!m.owningUserId"
+                  @click="linkPlaceholderToMe(g, m)"
+                  class="text-blue-600 hover:underline"
+                >Link to me</button>
+                <button
+                  v-if="!m.owningUserId"
+                  @click="startLinkByEmail(g, m)"
+                  class="text-blue-600 hover:underline"
+                >Link by email…</button>
+                <button v-if="renamingMember?.memberId !== m.id" @click="startRenameMember(g, m)" class="text-blue-600 hover:underline">Rename</button>
+                <button v-if="renamingMember?.memberId !== m.id" @click="deleteMember(g, m)" class="text-red-600 hover:underline">Remove</button>
+              </template>
             </td>
           </tr>
           <tr class="border-t border-slate-100 bg-slate-50">
-            <td colspan="4" class="px-4 py-2">
-              <div class="flex gap-2 items-center">
+            <td colspan="4" class="px-4 py-2 space-y-2">
+              <div class="flex gap-3 text-xs text-slate-600">
+                <label class="flex items-center gap-1">
+                  <input type="radio" :value="'placeholder'" v-model="rowState(g.id).mode" /> Placeholder
+                </label>
+                <label class="flex items-center gap-1">
+                  <input type="radio" :value="'invite'" v-model="rowState(g.id).mode" /> Invite by email
+                </label>
+              </div>
+              <div v-if="rowState(g.id).mode === 'placeholder'" class="flex gap-2 items-center">
                 <input
-                  v-model="newMember[g.id]"
+                  v-model="rowState(g.id).label"
                   type="text"
                   placeholder="Add member label (e.g. partner, joint)"
                   class="border border-slate-300 rounded px-3 py-1 flex-1 max-w-md"
-                  @keydown.enter="addMember(g)"
+                  :disabled="rowState(g.id).busy"
+                  @keydown.enter="addPlaceholder(g)"
                 />
                 <button
-                  @click="addMember(g)"
-                  :disabled="!(newMember[g.id] ?? '').trim()"
+                  @click="addPlaceholder(g)"
+                  :disabled="!rowState(g.id).label.trim() || rowState(g.id).busy"
                   class="bg-blue-600 text-white px-3 py-1 rounded disabled:bg-slate-300 text-sm"
                 >Add</button>
+              </div>
+              <div v-else class="flex gap-2 items-center flex-wrap">
+                <input
+                  v-model="rowState(g.id).email"
+                  type="email"
+                  placeholder="user@example.com"
+                  class="border border-slate-300 rounded px-3 py-1 w-64"
+                  :disabled="rowState(g.id).busy"
+                  @keydown.enter="inviteByEmail(g)"
+                />
+                <input
+                  v-model="rowState(g.id).label"
+                  type="text"
+                  placeholder="Label (optional, defaults to display name)"
+                  class="border border-slate-300 rounded px-3 py-1 flex-1 min-w-[12rem]"
+                  :disabled="rowState(g.id).busy"
+                  @keydown.enter="inviteByEmail(g)"
+                />
+                <button
+                  @click="inviteByEmail(g)"
+                  :disabled="!rowState(g.id).email.trim() || rowState(g.id).busy"
+                  class="bg-blue-600 text-white px-3 py-1 rounded disabled:bg-slate-300 text-sm"
+                >{{ rowState(g.id).busy ? 'Inviting…' : 'Invite' }}</button>
               </div>
             </td>
           </tr>

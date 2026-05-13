@@ -80,6 +80,19 @@ public static class GroupsEndpoints
                 : Results.StatusCode((int)response.StatusCode);
         });
 
+        app.MapPost("/api/groups/{groupId:guid}/members/{memberId:guid}/link", async (
+            Guid groupId,
+            Guid memberId,
+            LinkGroupMemberDto body,
+            IdentityClient identity,
+            CancellationToken ct) =>
+        {
+            var response = await identity.Http.PostAsJsonAsync(
+                $"/api/groups/{groupId}/members/{memberId}/link", body, ct);
+            var content = await response.Content.ReadAsStringAsync(ct);
+            return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);
+        });
+
         return app;
     }
 }
