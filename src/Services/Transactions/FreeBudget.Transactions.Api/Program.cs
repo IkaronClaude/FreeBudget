@@ -328,6 +328,18 @@ app.MapPatch("/api/transactions/{id:guid}/category", async (
     return Results.NoContent();
 });
 
+app.MapPost("/api/transactions/bulk-category", async (
+    BulkCategoryRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(
+        new BulkUpdateTransactionCategoryCommand(request.TransactionIds, request.Category), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Ok(result.Value);
+});
+
 app.MapGet("/api/reports/category-breakdown", async (
     Guid bankAccountId,
     DateTime from,
@@ -385,6 +397,7 @@ static ImportLayout ToImportLayout(ImportLayoutDefinition d) => new()
 record CreateRuleRequest(Guid UserId, string Pattern, string MatchType, string Category, int Priority = 0);
 record UpdateRuleRequest(string Pattern, string MatchType, string Category, int Priority);
 record UpdateCategoryRequest(string? Category);
+record BulkCategoryRequest(IReadOnlyList<Guid> TransactionIds, string? Category);
 record ApplyRulesRequest(Guid UserId, IReadOnlyList<Guid> BankAccountIds);
 record CreateSharingRuleRequest(
     Guid UserId, string Pattern, string MatchType, string? EntryType, int Priority,

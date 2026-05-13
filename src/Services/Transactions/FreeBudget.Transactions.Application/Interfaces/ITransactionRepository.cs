@@ -12,4 +12,5 @@ public interface ITransactionRepository
     Task AddAsync(Transaction transaction, CancellationToken cancellationToken = default);
     Task AddRangeAsync(IEnumerable<Transaction> transactions, CancellationToken cancellationToken = default);
     Task UpdateAsync(Transaction transaction, CancellationToken cancellationToken = default);
+    Task UpdateRangeAsync(IEnumerable<Transaction> transactions, CancellationToken cancellationToken = default);
 }
