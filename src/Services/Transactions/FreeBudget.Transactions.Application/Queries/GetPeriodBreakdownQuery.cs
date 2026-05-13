@@ -12,7 +12,8 @@ public sealed record GetPeriodBreakdownQuery(
     Guid BankAccountId,
     DateTime From,
     DateTime To,
-    PeriodGranularity Granularity) : IRequest<IReadOnlyList<PeriodBreakdownItem>>;
+    PeriodGranularity Granularity,
+    bool ExcludeTransfers = true) : IRequest<IReadOnlyList<PeriodBreakdownItem>>;
 
 internal sealed class GetPeriodBreakdownHandler(
     ITransactionRepository repository)
@@ -25,7 +26,11 @@ internal sealed class GetPeriodBreakdownHandler(
         var transactions = await repository.GetByBankAccountIdAndDateRangeAsync(
             request.BankAccountId, request.From, request.To, cancellationToken);
 
-        return transactions
+        var filtered = request.ExcludeTransfers
+            ? transactions.Where(t => t.MatchedTransactionId is null)
+            : transactions;
+
+        return filtered
             .GroupBy(t => GetPeriodStart(t, request.Granularity))
             .OrderBy(g => g.Key)
             .Select(g => new PeriodBreakdownItem(
