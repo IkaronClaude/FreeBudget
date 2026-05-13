@@ -2,13 +2,14 @@
 import { ref, watch, computed, reactive } from 'vue';
 import { useMeStore } from '../stores/me';
 import { api } from '../api/client';
-import type { MemberBalance, LedgerEntry, GroupMember } from '../api/types';
+import type { MemberBalance, LedgerEntry, GroupMember, TransactionListItem } from '../api/types';
 
 const me = useMeStore();
 
 const selectedGroupId = ref<string>('');
 const balances = ref<MemberBalance[]>([]);
 const entries = ref<LedgerEntry[]>([]);
+const sharedTransactions = ref<TransactionListItem[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -45,12 +46,14 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    const [b, e] = await Promise.all([
+    const [b, e, t] = await Promise.all([
       api.get<MemberBalance[]>('/ledger/balances', { params: { groupId: selectedGroupId.value } }),
       api.get<LedgerEntry[]>('/ledger/entries', { params: { groupId: selectedGroupId.value } }),
+      api.get<TransactionListItem[]>(`/groups/${selectedGroupId.value}/transactions`),
     ]);
     balances.value = b.data;
     entries.value = e.data;
+    sharedTransactions.value = t.data;
   } catch (err: unknown) {
     error.value = err instanceof Error ? err.message : 'Failed to load ledger';
   } finally {
@@ -226,6 +229,39 @@ async function saveSettlement() {
         </tbody>
       </table>
       <div v-else class="p-4 text-slate-500">No ledger entries yet.</div>
+    </section>
+
+    <section class="bg-white rounded border border-slate-200 overflow-hidden">
+      <header class="px-4 py-3 border-b border-slate-200 font-medium">
+        Shared transactions
+        <span class="text-xs text-slate-500 font-normal ml-2">
+          Underlying transactions any member has shared into this group
+        </span>
+      </header>
+      <table v-if="sharedTransactions.length" class="w-full text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="text-left px-4 py-2">Date</th>
+            <th class="text-left px-4 py-2">Description</th>
+            <th class="text-left px-4 py-2">Category</th>
+            <th class="text-right px-4 py-2">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="t in sharedTransactions" :key="t.id" class="border-t border-slate-100">
+            <td class="px-4 py-2 whitespace-nowrap">{{ new Date(t.transactionDate).toLocaleDateString() }}</td>
+            <td class="px-4 py-2">
+              {{ t.description }}
+              <span v-if="t.matchedTransactionId" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">↔ transfer</span>
+            </td>
+            <td class="px-4 py-2 text-slate-600">{{ t.category ?? '—' }}</td>
+            <td class="px-4 py-2 text-right tabular-nums" :class="t.direction === 'Debit' ? 'text-red-700' : 'text-green-700'">
+              {{ (t.direction === 'Debit' ? -t.amount : t.amount).toFixed(2) }} {{ t.currencyCode }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-else class="p-4 text-slate-500">No transactions shared into this group yet.</div>
     </section>
   </div>
 </template>
