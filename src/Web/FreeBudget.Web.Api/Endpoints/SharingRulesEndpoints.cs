@@ -69,97 +69,105 @@ public static class SharingRulesEndpoints
             CancellationToken ct) =>
         {
             var me = await currentUser.GetAsync(ct);
-
-            var rulesResp = await transactions.Http.GetAsync($"/api/sharing-rules?userId={me.Id}", ct);
-            rulesResp.EnsureSuccessStatusCode();
-            var rules = await rulesResp.Content.ReadFromJsonAsync<List<SharingRuleDto>>(cancellationToken: ct) ?? [];
-            if (rules.Count == 0)
-                return Results.Ok(new ApplySharingRulesResult(0, 0, 0, 0, 0));
-
-            var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
-
-            var examined = 0;
-            var matched = 0;
-            var split = 0;
-            var skipped = 0;
-
-            foreach (var account in accounts)
-            {
-                var txnResp = await transactions.Http.GetAsync($"/api/transactions?bankAccountId={account.Id}", ct);
-                if (!txnResp.IsSuccessStatusCode) continue;
-                var txns = await txnResp.Content.ReadFromJsonAsync<List<TransactionListItem>>(cancellationToken: ct) ?? [];
-
-                foreach (var txn in txns)
-                {
-                    examined++;
-                    var rule = rules.FirstOrDefault(r => Matches(r, txn.Description));
-                    if (rule is null) continue;
-                    matched++;
-
-                    HttpResponseMessage resp;
-                    if (string.Equals(rule.EntryType, "Settlement", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var settlementPayload = new
-                        {
-                            rule.GroupId,
-                            rule.PaidByMemberId,
-                            OwedByMemberId = rule.ParticipantMemberIds[0],
-                            Amount = decimal.Round(Math.Abs(txn.Amount), 2),
-                            CurrencyCode = txn.CurrencyCode,
-                            Description = txn.Description,
-                            EntryDate = txn.TransactionDate,
-                            CreatedByUserId = me.Id,
-                            TransactionId = (Guid?)txn.Id,
-                        };
-                        resp = await ledger.Http.PostAsJsonAsync("/api/ledger/settlements", settlementPayload, ct);
-                    }
-                    else
-                    {
-                        var perHead = decimal.Round(Math.Abs(txn.Amount) / rule.ParticipantMemberIds.Count, 2);
-                        var owers = rule.ParticipantMemberIds
-                            .Where(id => id != rule.PaidByMemberId)
-                            .Select(id => new SplitParticipantInputDto(id, perHead))
-                            .ToList();
-                        if (owers.Count == 0) { skipped++; continue; }
-
-                        var splitPayload = new
-                        {
-                            rule.GroupId,
-                            rule.PaidByMemberId,
-                            TransactionId = txn.Id,
-                            CurrencyCode = txn.CurrencyCode,
-                            Description = txn.Description,
-                            EntryDate = txn.TransactionDate,
-                            CreatedByUserId = me.Id,
-                            Participants = owers,
-                        };
-                        resp = await ledger.Http.PostAsJsonAsync("/api/ledger/splits", splitPayload, ct);
-                    }
-
-                    if (resp.IsSuccessStatusCode) split++;
-                    else if (resp.StatusCode == HttpStatusCode.UnprocessableEntity) skipped++;
-                    else resp.EnsureSuccessStatusCode();
-                }
-            }
-
-            // After applying rules, also run the transfer matcher so settlements created by
-            // rules can auto-link to their counterpart inbound transactions.
-            var transfersPaired = 0;
-            if (accounts.Count > 1)
-            {
-                var matchPayload = new { BankAccountIds = accounts.Select(a => a.Id).ToList(), DateToleranceDays = (int?)1 };
-                var matchResp = await transactions.Http.PostAsJsonAsync("/api/transactions/match-transfers", matchPayload, ct);
-                if (matchResp.IsSuccessStatusCode)
-                {
-                    var matchResult = await matchResp.Content.ReadFromJsonAsync<MatchTransfersResultDto>(cancellationToken: ct);
-                    transfersPaired = matchResult?.Matched ?? 0;
-                }
-            }
-
-            return Results.Ok(new ApplySharingRulesResult(examined, matched, split, skipped, transfersPaired));
+            var result = await RunApplyAsync(me.Id, identity, transactions, ledger, ct);
+            return Results.Ok(result);
         });
 
         return app;
+    }
+
+    public static async Task<ApplySharingRulesResult> RunApplyAsync(
+        Guid userId,
+        IdentityClient identity,
+        TransactionsClient transactions,
+        LedgerClient ledger,
+        CancellationToken ct)
+    {
+        var rulesResp = await transactions.Http.GetAsync($"/api/sharing-rules?userId={userId}", ct);
+        rulesResp.EnsureSuccessStatusCode();
+        var rules = await rulesResp.Content.ReadFromJsonAsync<List<SharingRuleDto>>(cancellationToken: ct) ?? [];
+        if (rules.Count == 0)
+            return new ApplySharingRulesResult(0, 0, 0, 0, 0);
+
+        var accounts = await identity.GetUserBankAccountsAsync(userId, ct);
+
+        var examined = 0;
+        var matched = 0;
+        var split = 0;
+        var skipped = 0;
+
+        foreach (var account in accounts)
+        {
+            var txnResp = await transactions.Http.GetAsync($"/api/transactions?bankAccountId={account.Id}", ct);
+            if (!txnResp.IsSuccessStatusCode) continue;
+            var txns = await txnResp.Content.ReadFromJsonAsync<List<TransactionListItem>>(cancellationToken: ct) ?? [];
+
+            foreach (var txn in txns)
+            {
+                examined++;
+                var rule = rules.FirstOrDefault(r => Matches(r, txn.Description));
+                if (rule is null) continue;
+                matched++;
+
+                HttpResponseMessage resp;
+                if (string.Equals(rule.EntryType, "Settlement", StringComparison.OrdinalIgnoreCase))
+                {
+                    var settlementPayload = new
+                    {
+                        rule.GroupId,
+                        rule.PaidByMemberId,
+                        OwedByMemberId = rule.ParticipantMemberIds[0],
+                        Amount = decimal.Round(Math.Abs(txn.Amount), 2),
+                        CurrencyCode = txn.CurrencyCode,
+                        Description = txn.Description,
+                        EntryDate = txn.TransactionDate,
+                        CreatedByUserId = userId,
+                        TransactionId = (Guid?)txn.Id,
+                    };
+                    resp = await ledger.Http.PostAsJsonAsync("/api/ledger/settlements", settlementPayload, ct);
+                }
+                else
+                {
+                    var perHead = decimal.Round(Math.Abs(txn.Amount) / rule.ParticipantMemberIds.Count, 2);
+                    var owers = rule.ParticipantMemberIds
+                        .Where(id => id != rule.PaidByMemberId)
+                        .Select(id => new SplitParticipantInputDto(id, perHead))
+                        .ToList();
+                    if (owers.Count == 0) { skipped++; continue; }
+
+                    var splitPayload = new
+                    {
+                        rule.GroupId,
+                        rule.PaidByMemberId,
+                        TransactionId = txn.Id,
+                        CurrencyCode = txn.CurrencyCode,
+                        Description = txn.Description,
+                        EntryDate = txn.TransactionDate,
+                        CreatedByUserId = userId,
+                        Participants = owers,
+                    };
+                    resp = await ledger.Http.PostAsJsonAsync("/api/ledger/splits", splitPayload, ct);
+                }
+
+                if (resp.IsSuccessStatusCode) split++;
+                else if (resp.StatusCode == HttpStatusCode.UnprocessableEntity) skipped++;
+                else resp.EnsureSuccessStatusCode();
+            }
+        }
+
+        var transfersPaired = 0;
+        if (accounts.Count > 1)
+        {
+            var matchPayload = new { BankAccountIds = accounts.Select(a => a.Id).ToList(), DateToleranceDays = (int?)1 };
+            var matchResp = await transactions.Http.PostAsJsonAsync("/api/transactions/match-transfers", matchPayload, ct);
+            if (matchResp.IsSuccessStatusCode)
+            {
+                var matchResult = await matchResp.Content.ReadFromJsonAsync<MatchTransfersResultDto>(cancellationToken: ct);
+                transfersPaired = matchResult?.Matched ?? 0;
+            }
+        }
+
+        return new ApplySharingRulesResult(examined, matched, split, skipped, transfersPaired);
     }
 
     private static bool Matches(SharingRuleDto rule, string description) =>
