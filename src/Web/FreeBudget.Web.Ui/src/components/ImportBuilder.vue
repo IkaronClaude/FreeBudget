@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue';
+import { useMeStore } from '../stores/me';
 import { api } from '../api/client';
 import {
   type ImportLayout,
@@ -18,6 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ (e: 'imported'): void }>();
 
+const me = useMeStore();
 const file = ref<File | null>(null);
 const rawText = ref<string>('');
 const rawRows = computed(() => rawText.value ? parseCsv(rawText.value, layout.delimiter || ',') : []);
@@ -161,16 +163,24 @@ async function saveAndImport() {
   try {
     const form = new FormData();
     form.append('file', file.value);
+    const params: Record<string, string> = {
+      bankAccountId: props.bankAccountId,
+      layout: 'saved',
+    };
+    // Only send the map if we actually need to route across multiple accounts
+    if (needsRouting.value) {
+      params.currencyMap = JSON.stringify(currencyToAccount);
+    }
     const { data } = await api.post<ImportCsvResponse>('/transactions/import', form, {
-      params: { bankAccountId: props.bankAccountId, layout: 'saved' },
+      params,
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     message.value = `Imported ${data.transactionCount} transactions, skipped ${data.skippedDuplicates} duplicates.`;
     emit('imported');
     file.value = null;
     rawText.value = '';
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Import failed';
+  } catch (e: any) {
+    error.value = e?.response?.data?.error ?? (e instanceof Error ? e.message : 'Import failed');
   } finally {
     importing.value = false;
   }
@@ -183,6 +193,30 @@ function addMappingRow() {
 function removeMappingRow(index: number) {
   directionMappingRows.value.splice(index, 1);
 }
+
+// Multi-currency routing: detect distinct currencies (source + target) in the CSV
+// and let the user route each to a specific bank account.
+const detectedCurrencies = computed<string[]>(() => {
+  const set = new Set<string>();
+  for (const row of dataRows.value) {
+    const c1 = getColumnValue(row, layout.currencyColumn);
+    if (c1) set.add(c1.trim().toUpperCase());
+    const c2 = getColumnValue(row, layout.targetCurrencyColumn);
+    if (c2) set.add(c2.trim().toUpperCase());
+  }
+  return [...set];
+});
+
+const currencyToAccount = reactive<Record<string, string>>({});
+
+watch(detectedCurrencies, (currencies) => {
+  // Default each currency to the current account; user can change.
+  for (const c of currencies) {
+    if (!currencyToAccount[c]) currencyToAccount[c] = props.bankAccountId;
+  }
+});
+
+const needsRouting = computed(() => detectedCurrencies.value.length > 1);
 </script>
 
 <template>
@@ -293,6 +327,20 @@ function removeMappingRow(index: number) {
             </select>
           </label>
           <label class="flex flex-col text-sm">
+            <span class="text-slate-600 mb-1">Target amount column (for FX conversions)</span>
+            <select v-model="layout.targetAmountColumn" class="border border-slate-300 rounded px-2 py-1">
+              <option :value="null">—</option>
+              <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
+            </select>
+          </label>
+          <label class="flex flex-col text-sm">
+            <span class="text-slate-600 mb-1">Target currency column (for FX conversions)</span>
+            <select v-model="layout.targetCurrencyColumn" class="border border-slate-300 rounded px-2 py-1">
+              <option :value="null">—</option>
+              <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
+            </select>
+          </label>
+          <label class="flex flex-col text-sm">
             <span class="text-slate-600 mb-1">External ID column (optional)</span>
             <select v-model="layout.externalIdColumn" class="border border-slate-300 rounded px-2 py-1">
               <option :value="null">—</option>
@@ -339,6 +387,27 @@ function removeMappingRow(index: number) {
               <button @click="removeMappingRow(i)" class="text-red-600 hover:underline text-xs">Remove</button>
             </div>
             <button @click="addMappingRow" class="text-blue-600 hover:underline text-sm">+ Add mapping</button>
+          </div>
+        </div>
+      </details>
+
+      <details v-if="detectedCurrencies.length > 1" open class="rounded border border-amber-200 bg-amber-50">
+        <summary class="px-4 py-2 cursor-pointer text-sm font-medium text-amber-900">
+          Multiple currencies detected — route each to a bank account
+        </summary>
+        <div class="p-4 space-y-2 text-sm">
+          <p class="text-xs text-amber-800 mb-2">
+            Each row's currency is sent to the matching account. NEUTRAL/FX-conversion rows produce two transactions
+            (a debit on the source-currency account and a credit on the target-currency account).
+          </p>
+          <div v-for="c in detectedCurrencies" :key="c" class="flex items-center gap-2">
+            <span class="font-mono w-12">{{ c }}</span>
+            <span>→</span>
+            <select v-model="currencyToAccount[c]" class="border border-slate-300 rounded px-2 py-1 flex-1 max-w-md">
+              <option v-for="a in me.bankAccounts" :key="a.id" :value="a.id">
+                {{ a.nickname }} ({{ a.bankType }})
+              </option>
+            </select>
           </div>
         </div>
       </details>

@@ -13,6 +13,8 @@ public sealed record ImportLayout
     public string? ExternalIdColumn { get; init; }
     public string? RunningBalanceColumn { get; init; }
     public string? CategoryColumn { get; init; }
+    public string? TargetAmountColumn { get; init; }
+    public string? TargetCurrencyColumn { get; init; }
     public string DateFormat { get; init; } = "dd/MM/yyyy";
     public bool HasHeaderRow { get; init; } = true;
     public char Delimiter { get; init; } = ',';

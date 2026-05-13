@@ -7,7 +7,8 @@ namespace FreeBudget.Transactions.Application.Commands;
 public sealed record ImportCsvCommand(
     Guid BankAccountId,
     Stream CsvStream,
-    ImportLayout Layout) : IRequest<Result<ImportCsvResult>>;
+    ImportLayout Layout,
+    IReadOnlyDictionary<string, Guid>? CurrencyToBankAccountMap = null) : IRequest<Result<ImportCsvResult>>;
 
 public sealed record ImportCsvResult(
     Guid ImportBatchId,

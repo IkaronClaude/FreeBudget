@@ -13,6 +13,8 @@ export interface ImportLayout {
   externalIdColumn?: string | null;
   runningBalanceColumn?: string | null;
   categoryColumn?: string | null;
+  targetAmountColumn?: string | null;
+  targetCurrencyColumn?: string | null;
   dateFormat: string;
   hasHeaderRow: boolean;
   delimiter: string;
@@ -32,6 +34,8 @@ export function blankLayout(bankAccountId: string): ImportLayout {
     externalIdColumn: null,
     runningBalanceColumn: null,
     categoryColumn: null,
+    targetAmountColumn: null,
+    targetCurrencyColumn: null,
     dateFormat: 'dd/MM/yyyy',
     hasHeaderRow: true,
     delimiter: ',',
@@ -66,6 +70,8 @@ export async function saveLayout(bankAccountId: string, layout: ImportLayout): P
     externalIdColumn: layout.externalIdColumn,
     runningBalanceColumn: layout.runningBalanceColumn,
     categoryColumn: layout.categoryColumn,
+    targetAmountColumn: layout.targetAmountColumn,
+    targetCurrencyColumn: layout.targetCurrencyColumn,
     dateFormat: layout.dateFormat,
     hasHeaderRow: layout.hasHeaderRow,
     delimiter: layout.delimiter,

@@ -96,6 +96,22 @@ internal sealed class CsvTransactionParser : ICsvTransactionParser
                     category = catStr;
             }
 
+            decimal? targetAmount = null;
+            if (layout.TargetAmountColumn is not null)
+            {
+                var tStr = csv.GetField(layout.TargetAmountColumn)?.Trim();
+                if (!string.IsNullOrEmpty(tStr))
+                    targetAmount = Math.Abs(decimal.Parse(tStr, NumberStyles.Number, CultureInfo.InvariantCulture));
+            }
+
+            string? targetCurrency = null;
+            if (layout.TargetCurrencyColumn is not null)
+            {
+                var tcStr = csv.GetField(layout.TargetCurrencyColumn)?.Trim();
+                if (!string.IsNullOrEmpty(tcStr))
+                    targetCurrency = tcStr;
+            }
+
             transactions.Add(new RawBankTransaction(
                 ExternalTransactionId: externalId,
                 TransactionDate: date,
@@ -104,7 +120,9 @@ internal sealed class CsvTransactionParser : ICsvTransactionParser
                 CurrencyCode: currencyCode,
                 Direction: direction,
                 RunningBalance: runningBalance,
-                Category: category));
+                Category: category,
+                TargetAmount: targetAmount,
+                TargetCurrencyCode: targetCurrency));
         }
 
         return Task.FromResult<IReadOnlyList<RawBankTransaction>>(transactions);

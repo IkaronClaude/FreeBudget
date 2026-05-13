@@ -1,7 +1,8 @@
 using FreeBudget.SharedKernel.Results;
+using FreeBudget.SharedKernel.ValueObjects;
+using FreeBudget.Transactions.Application.DTOs;
 using FreeBudget.Transactions.Application.Interfaces;
 using FreeBudget.Transactions.Domain.Entities;
-using FreeBudget.SharedKernel.ValueObjects;
 using FreeBudget.Transactions.Domain.ValueObjects;
 using MediatR;
 
@@ -27,35 +28,51 @@ internal sealed class ImportCsvHandler(
             var rawTransactions = await parser.ParseAsync(
                 request.CsvStream, request.Layout, cancellationToken);
 
+            // Build a case-insensitive currency → bank account map. Default account also
+            // covers any unmapped currency.
+            var currencyMap = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+            if (request.CurrencyToBankAccountMap is not null)
+            {
+                foreach (var (currency, accountId) in request.CurrencyToBankAccountMap)
+                    currencyMap[currency.Trim().ToUpperInvariant()] = accountId;
+            }
+
+            Guid ResolveAccount(string currencyCode)
+            {
+                if (currencyMap.TryGetValue(currencyCode.Trim().ToUpperInvariant(), out var mapped))
+                    return mapped;
+                return request.BankAccountId;
+            }
+
             var transactions = new List<Transaction>();
             var skipped = 0;
 
             foreach (var raw in rawTransactions)
             {
-                if (raw.ExternalTransactionId is not null
-                    && await transactionRepository.ExistsByExternalIdAsync(
-                        request.BankAccountId, raw.ExternalTransactionId, cancellationToken))
+                // Neutral direction = currency conversion. Emit one debit on the source
+                // currency's account plus one credit on the target currency's account.
+                if (string.Equals(raw.Direction, "Neutral", StringComparison.OrdinalIgnoreCase))
                 {
-                    skipped++;
+                    if (!raw.TargetAmount.HasValue || string.IsNullOrWhiteSpace(raw.TargetCurrencyCode))
+                    {
+                        return Result<ImportCsvResult>.Failure(
+                            $"Row with external id '{raw.ExternalTransactionId}' is Neutral direction but is missing target amount/currency.");
+                    }
+
+                    var srcAccount = ResolveAccount(raw.CurrencyCode);
+                    var tgtAccount = ResolveAccount(raw.TargetCurrencyCode);
+
+                    if (!await AppendIfNew(srcAccount, raw, TransactionDirection.Debit, raw.Amount, raw.CurrencyCode, transactions, batch.Id, cancellationToken))
+                        skipped++;
+                    if (!await AppendIfNew(tgtAccount, raw, TransactionDirection.Credit, raw.TargetAmount.Value, raw.TargetCurrencyCode, transactions, batch.Id, cancellationToken))
+                        skipped++;
                     continue;
                 }
 
-                var amount = new Money(raw.Amount, raw.CurrencyCode);
                 var direction = TransactionDirection.From(raw.Direction);
-                var runningBalance = raw.RunningBalance.HasValue
-                    ? new Money(raw.RunningBalance.Value, raw.CurrencyCode)
-                    : null;
-
-                transactions.Add(Transaction.Create(
-                    request.BankAccountId,
-                    raw.TransactionDate,
-                    raw.Description,
-                    amount,
-                    direction,
-                    runningBalance,
-                    raw.ExternalTransactionId,
-                    batch.Id,
-                    raw.Category));
+                var account = ResolveAccount(raw.CurrencyCode);
+                if (!await AppendIfNew(account, raw, direction, raw.Amount, raw.CurrencyCode, transactions, batch.Id, cancellationToken))
+                    skipped++;
             }
 
             var rules = await ruleRepository.GetByUserIdAsync(
@@ -83,5 +100,44 @@ internal sealed class ImportCsvHandler(
             await importBatchRepository.UpdateAsync(batch, cancellationToken);
             return Result<ImportCsvResult>.Failure(ex.Message);
         }
+    }
+
+    private async Task<bool> AppendIfNew(
+        Guid bankAccountId,
+        RawBankTransaction raw,
+        TransactionDirection direction,
+        decimal amount,
+        string currencyCode,
+        List<Transaction> sink,
+        Guid batchId,
+        CancellationToken ct)
+    {
+        if (raw.ExternalTransactionId is not null
+            && await transactionRepository.ExistsByExternalIdAsync(bankAccountId, raw.ExternalTransactionId, ct))
+        {
+            return false;
+        }
+        if (raw.ExternalTransactionId is not null
+            && sink.Any(t => t.BankAccountId == bankAccountId && t.ExternalTransactionId == raw.ExternalTransactionId))
+        {
+            return false;
+        }
+
+        var money = new Money(amount, currencyCode);
+        var runningBalance = raw.RunningBalance.HasValue
+            ? new Money(raw.RunningBalance.Value, currencyCode)
+            : null;
+
+        sink.Add(Transaction.Create(
+            bankAccountId,
+            raw.TransactionDate,
+            raw.Description,
+            money,
+            direction,
+            runningBalance,
+            raw.ExternalTransactionId,
+            batchId,
+            raw.Category));
+        return true;
     }
 }
