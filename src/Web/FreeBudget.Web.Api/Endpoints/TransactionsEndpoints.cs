@@ -71,6 +71,7 @@ public static class TransactionsEndpoints
             HttpRequest request,
             Guid bankAccountId,
             string layout,
+            string? currencyMap,
             TransactionsClient client,
             CancellationToken ct) =>
         {
@@ -90,6 +91,8 @@ public static class TransactionsEndpoints
             content.Add(streamContent, "file", file.FileName);
 
             var url = $"/api/transactions/import?bankAccountId={bankAccountId}&layout={Uri.EscapeDataString(layout)}";
+            if (!string.IsNullOrWhiteSpace(currencyMap))
+                url += $"&currencyMap={Uri.EscapeDataString(currencyMap)}";
             var response = await client.Http.PostAsync(url, content, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
             return Results.Content(body, response.Content.Headers.ContentType?.MediaType ?? "application/json", statusCode: (int)response.StatusCode);

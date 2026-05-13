@@ -27,6 +27,8 @@ internal sealed class GetImportLayoutHandler(IImportLayoutRepository repository)
             layout.ExternalIdColumn,
             layout.RunningBalanceColumn,
             layout.CategoryColumn,
+            layout.TargetAmountColumn,
+            layout.TargetCurrencyColumn,
             layout.DateFormat,
             layout.HasHeaderRow,
             layout.Delimiter,

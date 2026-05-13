@@ -13,6 +13,8 @@ public sealed record ImportLayoutDto(
     string? ExternalIdColumn,
     string? RunningBalanceColumn,
     string? CategoryColumn,
+    string? TargetAmountColumn,
+    string? TargetCurrencyColumn,
     string DateFormat,
     bool HasHeaderRow,
     string Delimiter,

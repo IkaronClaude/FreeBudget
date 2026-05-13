@@ -29,6 +29,8 @@ internal sealed class ImportLayoutDefinitionConfiguration : IEntityTypeConfigura
         builder.Property(l => l.ExternalIdColumn).HasColumnName("external_id_column").HasMaxLength(200);
         builder.Property(l => l.RunningBalanceColumn).HasColumnName("running_balance_column").HasMaxLength(200);
         builder.Property(l => l.CategoryColumn).HasColumnName("category_column").HasMaxLength(200);
+        builder.Property(l => l.TargetAmountColumn).HasColumnName("target_amount_column").HasMaxLength(200);
+        builder.Property(l => l.TargetCurrencyColumn).HasColumnName("target_currency_column").HasMaxLength(200);
         builder.Property(l => l.DateFormat).HasColumnName("date_format").HasMaxLength(50).IsRequired();
         builder.Property(l => l.HasHeaderRow).HasColumnName("has_header_row").IsRequired();
         builder.Property(l => l.Delimiter).HasColumnName("delimiter").HasMaxLength(4).IsRequired();

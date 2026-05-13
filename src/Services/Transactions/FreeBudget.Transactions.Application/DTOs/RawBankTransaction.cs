@@ -8,4 +8,6 @@ public sealed record RawBankTransaction(
     string CurrencyCode,
     string Direction,
     decimal? RunningBalance,
-    string? Category);
+    string? Category,
+    decimal? TargetAmount = null,
+    string? TargetCurrencyCode = null);

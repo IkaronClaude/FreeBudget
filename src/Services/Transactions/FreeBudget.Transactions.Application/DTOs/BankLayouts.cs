@@ -27,9 +27,12 @@ public static class BankLayouts
         {
             ["IN"] = "Credit",
             ["OUT"] = "Debit",
+            ["NEUTRAL"] = "Neutral",
         },
         ExternalIdColumn = "ID",
         CategoryColumn = "Category",
+        TargetAmountColumn = "Target amount",
+        TargetCurrencyColumn = "Target currency",
         DateFormat = "dd/MM/yyyy HH:mm",
         DefaultCurrencyCode = "GBP",
         CreatedByUserId = createdByUserId,

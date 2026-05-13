@@ -40,6 +40,7 @@ app.MapPost("/api/transactions/import", async (
     IFormFile file,
     Guid bankAccountId,
     string layout,
+    string? currencyMap,
     IMediator mediator,
     IImportLayoutRepository layoutRepository,
     CancellationToken ct) =>
@@ -64,8 +65,21 @@ app.MapPost("/api/transactions/import", async (
             return Results.BadRequest(new { Error = $"Unknown layout: '{layout}'. Supported: barclays, wise, saved" });
     }
 
+    Dictionary<string, Guid>? map = null;
+    if (!string.IsNullOrWhiteSpace(currencyMap))
+    {
+        try
+        {
+            map = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Guid>>(currencyMap);
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { Error = $"Invalid currencyMap: {ex.Message}" });
+        }
+    }
+
     await using var stream = file.OpenReadStream();
-    var command = new ImportCsvCommand(bankAccountId, stream, importLayout);
+    var command = new ImportCsvCommand(bankAccountId, stream, importLayout, map);
     var result = await mediator.Send(command, ct);
 
     if (result.IsFailure)
@@ -99,6 +113,7 @@ app.MapPut("/api/bank-accounts/{id:guid}/import-layout", async (
         request.DateColumn, request.DescriptionColumn, request.AmountColumn,
         request.CurrencyColumn, request.DirectionColumn, request.DirectionMappings,
         request.ExternalIdColumn, request.RunningBalanceColumn, request.CategoryColumn,
+        request.TargetAmountColumn, request.TargetCurrencyColumn,
         request.DateFormat, request.HasHeaderRow, request.Delimiter, request.DefaultCurrencyCode);
     var result = await mediator.Send(new UpsertImportLayoutCommand(id, request.CreatedByUserId, dto), ct);
     if (result.IsFailure)
@@ -125,6 +140,7 @@ app.MapGet("/api/import-layouts/presets", () =>
         l.CurrencyColumn, l.DirectionColumn,
         l.DirectionMappings is null ? null : new Dictionary<string, string>(l.DirectionMappings),
         l.ExternalIdColumn, l.RunningBalanceColumn, l.CategoryColumn,
+        l.TargetAmountColumn, l.TargetCurrencyColumn,
         l.DateFormat, l.HasHeaderRow, l.Delimiter.ToString(), l.DefaultCurrencyCode);
 
     return Results.Ok(new[]
@@ -353,6 +369,8 @@ static ImportLayout ToImportLayout(ImportLayoutDefinition d) => new()
     ExternalIdColumn = d.ExternalIdColumn,
     RunningBalanceColumn = d.RunningBalanceColumn,
     CategoryColumn = d.CategoryColumn,
+    TargetAmountColumn = d.TargetAmountColumn,
+    TargetCurrencyColumn = d.TargetCurrencyColumn,
     DateFormat = d.DateFormat,
     HasHeaderRow = d.HasHeaderRow,
     Delimiter = d.Delimiter.Length > 0 ? d.Delimiter[0] : ',',
@@ -384,6 +402,8 @@ record UpsertImportLayoutRequest(
     string? ExternalIdColumn,
     string? RunningBalanceColumn,
     string? CategoryColumn,
+    string? TargetAmountColumn,
+    string? TargetCurrencyColumn,
     string DateFormat,
     bool HasHeaderRow,
     string Delimiter,

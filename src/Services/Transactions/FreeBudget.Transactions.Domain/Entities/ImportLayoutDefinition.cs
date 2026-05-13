@@ -18,6 +18,8 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
     public string? ExternalIdColumn { get; private set; }
     public string? RunningBalanceColumn { get; private set; }
     public string? CategoryColumn { get; private set; }
+    public string? TargetAmountColumn { get; private set; }
+    public string? TargetCurrencyColumn { get; private set; }
     public string DateFormat { get; private set; } = "dd/MM/yyyy";
     public bool HasHeaderRow { get; private set; } = true;
     public string Delimiter { get; private set; } = ",";
@@ -38,6 +40,8 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
         string? externalIdColumn = null,
         string? runningBalanceColumn = null,
         string? categoryColumn = null,
+        string? targetAmountColumn = null,
+        string? targetCurrencyColumn = null,
         string dateFormat = "dd/MM/yyyy",
         bool hasHeaderRow = true,
         string delimiter = ",",
@@ -70,6 +74,8 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
             ExternalIdColumn = Trim(externalIdColumn),
             RunningBalanceColumn = Trim(runningBalanceColumn),
             CategoryColumn = Trim(categoryColumn),
+            TargetAmountColumn = Trim(targetAmountColumn),
+            TargetCurrencyColumn = Trim(targetCurrencyColumn),
             DateFormat = dateFormat,
             HasHeaderRow = hasHeaderRow,
             Delimiter = delimiter,
@@ -88,6 +94,8 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
         string? externalIdColumn,
         string? runningBalanceColumn,
         string? categoryColumn,
+        string? targetAmountColumn,
+        string? targetCurrencyColumn,
         string dateFormat,
         bool hasHeaderRow,
         string delimiter,
@@ -111,6 +119,8 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
         ExternalIdColumn = Trim(externalIdColumn);
         RunningBalanceColumn = Trim(runningBalanceColumn);
         CategoryColumn = Trim(categoryColumn);
+        TargetAmountColumn = Trim(targetAmountColumn);
+        TargetCurrencyColumn = Trim(targetCurrencyColumn);
         DateFormat = dateFormat;
         HasHeaderRow = hasHeaderRow;
         Delimiter = delimiter;
