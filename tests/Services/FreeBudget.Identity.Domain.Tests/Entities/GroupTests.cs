@@ -167,4 +167,51 @@ public class GroupTests
 
         act.Should().Throw<ArgumentException>();
     }
+
+    [Fact]
+    public void LinkMemberToUser_attaches_user_to_placeholder()
+    {
+        var group = Group.Create("Household", CreatorId);
+        var partner = group.AddMember("partner");
+        var partnerUserId = Guid.NewGuid();
+
+        var linked = group.LinkMemberToUser(partner.Id, partnerUserId);
+
+        linked.Id.Should().Be(partner.Id);
+        linked.OwningUserId.Should().Be(partnerUserId);
+    }
+
+    [Fact]
+    public void LinkMemberToUser_when_user_already_on_another_member_throws()
+    {
+        var group = Group.Create("Household", CreatorId);
+        var partnerUserId = Guid.NewGuid();
+        group.AddMember("partner", partnerUserId);
+        var placeholder = group.AddMember("guest");
+
+        var act = () => group.LinkMemberToUser(placeholder.Id, partnerUserId);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void LinkMemberToUser_unknown_member_throws()
+    {
+        var group = Group.Create("Household", CreatorId);
+
+        var act = () => group.LinkMemberToUser(Guid.NewGuid(), Guid.NewGuid());
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void LinkMemberToUser_empty_userId_throws()
+    {
+        var group = Group.Create("Household", CreatorId);
+        var partner = group.AddMember("partner");
+
+        var act = () => group.LinkMemberToUser(partner.Id, Guid.Empty);
+
+        act.Should().Throw<ArgumentException>();
+    }
 }

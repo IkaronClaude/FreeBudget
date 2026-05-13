@@ -70,4 +70,20 @@ public sealed class Group : AggregateRoot<Guid>, IAuditableEntity
         ArgumentException.ThrowIfNullOrWhiteSpace(newName);
         Name = newName.Trim();
     }
+
+    public GroupMember LinkMemberToUser(Guid memberId, Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+
+        var member = _members.FirstOrDefault(m => m.Id == memberId)
+            ?? throw new InvalidOperationException($"Member '{memberId}' is not in this group.");
+
+        if (_members.Any(m => m.Id != memberId && m.OwningUserId == userId))
+            throw new InvalidOperationException(
+                $"User '{userId}' is already linked to another member of this group.");
+
+        member.LinkToUser(userId);
+        return member;
+    }
 }
