@@ -21,6 +21,16 @@ internal sealed class TransactionRepository(TransactionsDbContext context) : ITr
             .OrderBy(t => t.TransactionDate)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Transaction>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0) return [];
+        var idSet = ids.ToHashSet();
+        return await context.Transactions
+            .Where(t => idSet.Contains(t.Id))
+            .OrderByDescending(t => t.TransactionDate)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> ExistsByExternalIdAsync(Guid bankAccountId, string externalTransactionId, CancellationToken cancellationToken = default)
         => await context.Transactions
             .AnyAsync(t => t.BankAccountId == bankAccountId && t.ExternalTransactionId == externalTransactionId, cancellationToken);
