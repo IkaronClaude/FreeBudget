@@ -1,6 +1,5 @@
 using FreeBudget.Transactions.Application.DTOs;
 using FreeBudget.Transactions.Application.Interfaces;
-using FreeBudget.SharedKernel.ValueObjects;
 using FreeBudget.Transactions.Domain.ValueObjects;
 using MediatR;
 
@@ -9,7 +8,8 @@ namespace FreeBudget.Transactions.Application.Queries;
 public sealed record GetCategoryBreakdownQuery(
     Guid BankAccountId,
     DateTime From,
-    DateTime To) : IRequest<IReadOnlyList<CategoryBreakdownItem>>;
+    DateTime To,
+    bool ExcludeTransfers = true) : IRequest<IReadOnlyList<CategoryBreakdownItem>>;
 
 internal sealed class GetCategoryBreakdownHandler(
     ITransactionRepository repository)
@@ -22,7 +22,11 @@ internal sealed class GetCategoryBreakdownHandler(
         var transactions = await repository.GetByBankAccountIdAndDateRangeAsync(
             request.BankAccountId, request.From, request.To, cancellationToken);
 
-        return transactions
+        var filtered = request.ExcludeTransfers
+            ? transactions.Where(t => t.MatchedTransactionId is null)
+            : transactions;
+
+        return filtered
             .GroupBy(t => t.Category ?? "Uncategorized")
             .Select(g => new CategoryBreakdownItem(
                 Category: g.Key,

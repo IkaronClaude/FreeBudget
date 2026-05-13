@@ -19,6 +19,7 @@ const categoryItems = ref<CategoryBreakdownItem[]>([]);
 const periodItems = ref<PeriodBreakdownItem[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const excludeTransfers = ref(true);
 
 watch(
   () => me.bankAccounts,
@@ -28,7 +29,7 @@ watch(
   { immediate: true }
 );
 
-watch([selectedAccountId, tab, granularity, fromDate, toDate], () => loadReport(), { immediate: true });
+watch([selectedAccountId, tab, granularity, fromDate, toDate, excludeTransfers], () => loadReport(), { immediate: true });
 
 async function loadReport() {
   if (!selectedAccountId.value) return;
@@ -38,7 +39,8 @@ async function loadReport() {
     const params = {
       bankAccountId: selectedAccountId.value,
       from: new Date(fromDate.value).toISOString(),
-      to: new Date(toDate.value).toISOString()
+      to: new Date(toDate.value).toISOString(),
+      excludeTransfers: excludeTransfers.value,
     };
     if (tab.value === 'category') {
       const { data } = await api.get<CategoryBreakdownItem[]>('/reports/category-breakdown', { params });
@@ -88,6 +90,10 @@ const fmt = (n: number) => n.toFixed(2);
             <option value="Week">Week</option>
             <option value="Month">Month</option>
           </select>
+        </label>
+        <label class="flex items-center gap-2 text-sm pb-2" title="Transfers between your own accounts are excluded — they're not real income or expense">
+          <input v-model="excludeTransfers" type="checkbox" />
+          <span>Exclude transfers</span>
         </label>
       </div>
     </section>

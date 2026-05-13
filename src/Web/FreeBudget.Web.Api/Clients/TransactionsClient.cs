@@ -16,17 +16,17 @@ public sealed class TransactionsClient(HttpClient http)
         return await response.Content.ReadFromJsonAsync<List<TransactionListItem>>(cancellationToken: ct) ?? [];
     }
 
-    public async Task<IReadOnlyList<CategoryBreakdownItem>> CategoryBreakdownAsync(Guid bankAccountId, DateTime from, DateTime to, CancellationToken ct)
+    public async Task<IReadOnlyList<CategoryBreakdownItem>> CategoryBreakdownAsync(Guid bankAccountId, DateTime from, DateTime to, bool excludeTransfers, CancellationToken ct)
     {
-        var url = $"/api/reports/category-breakdown?bankAccountId={bankAccountId}&from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.ToString("o"))}";
+        var url = $"/api/reports/category-breakdown?bankAccountId={bankAccountId}&from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.ToString("o"))}&excludeTransfers={excludeTransfers}";
         var response = await http.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<List<CategoryBreakdownItem>>(cancellationToken: ct) ?? [];
     }
 
-    public async Task<IReadOnlyList<PeriodBreakdownItem>> PeriodBreakdownAsync(Guid bankAccountId, DateTime from, DateTime to, string granularity, CancellationToken ct)
+    public async Task<IReadOnlyList<PeriodBreakdownItem>> PeriodBreakdownAsync(Guid bankAccountId, DateTime from, DateTime to, string granularity, bool excludeTransfers, CancellationToken ct)
     {
-        var url = $"/api/reports/period-breakdown?bankAccountId={bankAccountId}&from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.ToString("o"))}&granularity={Uri.EscapeDataString(granularity)}";
+        var url = $"/api/reports/period-breakdown?bankAccountId={bankAccountId}&from={Uri.EscapeDataString(from.ToString("o"))}&to={Uri.EscapeDataString(to.ToString("o"))}&granularity={Uri.EscapeDataString(granularity)}&excludeTransfers={excludeTransfers}";
         var response = await http.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<List<PeriodBreakdownItem>>(cancellationToken: ct) ?? [];

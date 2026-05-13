@@ -10,10 +10,11 @@ public static class ReportsEndpoints
             Guid bankAccountId,
             DateTime from,
             DateTime to,
+            bool? excludeTransfers,
             TransactionsClient client,
             CancellationToken ct) =>
         {
-            var items = await client.CategoryBreakdownAsync(bankAccountId, from, to, ct);
+            var items = await client.CategoryBreakdownAsync(bankAccountId, from, to, excludeTransfers ?? true, ct);
             return Results.Ok(items);
         });
 
@@ -22,10 +23,11 @@ public static class ReportsEndpoints
             DateTime from,
             DateTime to,
             string granularity,
+            bool? excludeTransfers,
             TransactionsClient client,
             CancellationToken ct) =>
         {
-            var items = await client.PeriodBreakdownAsync(bankAccountId, from, to, granularity, ct);
+            var items = await client.PeriodBreakdownAsync(bankAccountId, from, to, granularity, excludeTransfers ?? true, ct);
             return Results.Ok(items);
         });
 

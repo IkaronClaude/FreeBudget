@@ -332,10 +332,12 @@ app.MapGet("/api/reports/category-breakdown", async (
     Guid bankAccountId,
     DateTime from,
     DateTime to,
+    bool? excludeTransfers,
     IMediator mediator,
     CancellationToken ct) =>
 {
-    var result = await mediator.Send(new GetCategoryBreakdownQuery(bankAccountId, from, to), ct);
+    var result = await mediator.Send(
+        new GetCategoryBreakdownQuery(bankAccountId, from, to, excludeTransfers ?? true), ct);
     return Results.Ok(result);
 });
 
@@ -344,13 +346,15 @@ app.MapGet("/api/reports/period-breakdown", async (
     DateTime from,
     DateTime to,
     string granularity,
+    bool? excludeTransfers,
     IMediator mediator,
     CancellationToken ct) =>
 {
     if (!Enum.TryParse<PeriodGranularity>(granularity, true, out var g))
         return Results.BadRequest(new { Error = $"Invalid granularity: '{granularity}'. Supported: Day, Week, Month" });
 
-    var result = await mediator.Send(new GetPeriodBreakdownQuery(bankAccountId, from, to, g), ct);
+    var result = await mediator.Send(
+        new GetPeriodBreakdownQuery(bankAccountId, from, to, g, excludeTransfers ?? true), ct);
     return Results.Ok(result);
 });
 
