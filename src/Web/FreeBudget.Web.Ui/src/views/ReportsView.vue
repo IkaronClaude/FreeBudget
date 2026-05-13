@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useMeStore } from '../stores/me';
 import { api } from '../api/client';
 import type { CategoryBreakdownItem, PeriodBreakdownItem } from '../api/types';
+import BreakdownBarChart from '../components/BreakdownBarChart.vue';
 
 const me = useMeStore();
 
@@ -59,6 +60,13 @@ async function loadReport() {
 }
 
 const fmt = (n: number) => n.toFixed(2);
+
+const categoryBars = computed(() =>
+  categoryItems.value.map(c => ({ label: c.category, credit: c.totalCredit, debit: c.totalDebit }))
+);
+const periodBars = computed(() =>
+  periodItems.value.map(p => ({ label: p.periodLabel, credit: p.totalCredit, debit: p.totalDebit }))
+);
 </script>
 
 <template>
@@ -119,49 +127,63 @@ const fmt = (n: number) => n.toFixed(2);
       <div v-if="loading" class="p-4 text-slate-500">Loading...</div>
       <p v-else-if="error" class="p-4 text-red-600">{{ error }}</p>
 
-      <table v-else-if="tab === 'category' && categoryItems.length" class="w-full text-sm">
-        <thead class="bg-slate-50 text-slate-600">
-          <tr>
-            <th class="text-left px-4 py-2">Category</th>
-            <th class="text-right px-4 py-2">Credit</th>
-            <th class="text-right px-4 py-2">Debit</th>
-            <th class="text-right px-4 py-2">Net</th>
-            <th class="text-right px-4 py-2"># txns</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in categoryItems" :key="c.category" class="border-t border-slate-100">
-            <td class="px-4 py-2">{{ c.category }}</td>
-            <td class="px-4 py-2 text-right tabular-nums text-green-700">{{ fmt(c.totalCredit) }}</td>
-            <td class="px-4 py-2 text-right tabular-nums text-red-700">{{ fmt(c.totalDebit) }}</td>
-            <td class="px-4 py-2 text-right tabular-nums">{{ fmt(c.net) }}</td>
-            <td class="px-4 py-2 text-right tabular-nums">{{ c.transactionCount }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <template v-else-if="tab === 'category'">
+        <template v-if="categoryItems.length">
+          <div class="p-4 border-b border-slate-100">
+            <BreakdownBarChart :rows="categoryBars" show-net />
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="text-left px-4 py-2">Category</th>
+                <th class="text-right px-4 py-2">Credit</th>
+                <th class="text-right px-4 py-2">Debit</th>
+                <th class="text-right px-4 py-2">Net</th>
+                <th class="text-right px-4 py-2"># txns</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="c in categoryItems" :key="c.category" class="border-t border-slate-100">
+                <td class="px-4 py-2">{{ c.category }}</td>
+                <td class="px-4 py-2 text-right tabular-nums text-green-700">{{ fmt(c.totalCredit) }}</td>
+                <td class="px-4 py-2 text-right tabular-nums text-red-700">{{ fmt(c.totalDebit) }}</td>
+                <td class="px-4 py-2 text-right tabular-nums">{{ fmt(c.net) }}</td>
+                <td class="px-4 py-2 text-right tabular-nums">{{ c.transactionCount }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+        <div v-else class="p-4 text-slate-500">No data for this range.</div>
+      </template>
 
-      <table v-else-if="tab === 'period' && periodItems.length" class="w-full text-sm">
-        <thead class="bg-slate-50 text-slate-600">
-          <tr>
-            <th class="text-left px-4 py-2">Period</th>
-            <th class="text-right px-4 py-2">Credit</th>
-            <th class="text-right px-4 py-2">Debit</th>
-            <th class="text-right px-4 py-2">Net</th>
-            <th class="text-right px-4 py-2"># txns</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in periodItems" :key="p.periodLabel" class="border-t border-slate-100">
-            <td class="px-4 py-2">{{ p.periodLabel }}</td>
-            <td class="px-4 py-2 text-right tabular-nums text-green-700">{{ fmt(p.totalCredit) }}</td>
-            <td class="px-4 py-2 text-right tabular-nums text-red-700">{{ fmt(p.totalDebit) }}</td>
-            <td class="px-4 py-2 text-right tabular-nums">{{ fmt(p.net) }}</td>
-            <td class="px-4 py-2 text-right tabular-nums">{{ p.transactionCount }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-else class="p-4 text-slate-500">No data for this range.</div>
+      <template v-else-if="tab === 'period'">
+        <template v-if="periodItems.length">
+          <div class="p-4 border-b border-slate-100">
+            <BreakdownBarChart :rows="periodBars" :max-rows="24" show-net />
+          </div>
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="text-left px-4 py-2">Period</th>
+                <th class="text-right px-4 py-2">Credit</th>
+                <th class="text-right px-4 py-2">Debit</th>
+                <th class="text-right px-4 py-2">Net</th>
+                <th class="text-right px-4 py-2"># txns</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in periodItems" :key="p.periodLabel" class="border-t border-slate-100">
+                <td class="px-4 py-2">{{ p.periodLabel }}</td>
+                <td class="px-4 py-2 text-right tabular-nums text-green-700">{{ fmt(p.totalCredit) }}</td>
+                <td class="px-4 py-2 text-right tabular-nums text-red-700">{{ fmt(p.totalDebit) }}</td>
+                <td class="px-4 py-2 text-right tabular-nums">{{ fmt(p.net) }}</td>
+                <td class="px-4 py-2 text-right tabular-nums">{{ p.transactionCount }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+        <div v-else class="p-4 text-slate-500">No data for this range.</div>
+      </template>
     </section>
   </div>
 </template>
