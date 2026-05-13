@@ -76,6 +76,7 @@ public sealed record UpdateCategorizationRuleRequest(
     int Priority);
 
 public sealed record UpdateCategoryDto(string? Category);
+public sealed record BulkCategoryDto(IReadOnlyList<Guid> TransactionIds, string? Category);
 
 public sealed record CreateBankAccountDto(string BankType, string Nickname);
 public sealed record RenameBankAccountDto(string Nickname);
