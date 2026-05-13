@@ -44,6 +44,7 @@ app.UseStaticFiles();
 app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Service = "Web.Api" }));
 
 app.MapMeEndpoints();
+app.MapUsersEndpoints();
 app.MapTransactionsEndpoints();
 app.MapReportsEndpoints();
 app.MapCategorizationRulesEndpoints();

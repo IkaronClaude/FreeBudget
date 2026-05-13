@@ -84,6 +84,7 @@ public sealed record CreateGroupDto(string Name, string? CreatorLabel);
 public sealed record RenameGroupDto(string Name);
 public sealed record AddGroupMemberDto(string Label, Guid? OwningUserId);
 public sealed record RenameGroupMemberDto(string Label);
+public sealed record LinkGroupMemberDto(Guid OwningUserId);
 
 public sealed record ImportLayoutDto(
     Guid? Id,

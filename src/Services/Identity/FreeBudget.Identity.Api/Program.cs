@@ -156,6 +156,20 @@ app.MapDelete("/api/groups/{groupId:guid}/members/{memberId:guid}", async (
     return Results.NoContent();
 });
 
+app.MapPost("/api/groups/{groupId:guid}/members/{memberId:guid}/link", async (
+    Guid groupId,
+    Guid memberId,
+    LinkGroupMemberRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(
+        new LinkGroupMemberToUserCommand(groupId, memberId, request.OwningUserId), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Ok(result.Value);
+});
+
 app.MapPost("/api/bank-accounts", async (
     CreateBankAccountRequest request,
     IMediator mediator,
@@ -232,4 +246,5 @@ record CreateGroupRequest(string Name, Guid CreatedByUserId, string? CreatorLabe
 record RenameGroupRequest(string Name);
 record AddGroupMemberRequest(string Label, Guid? OwningUserId);
 record RenameGroupMemberRequest(string Label);
+record LinkGroupMemberRequest(Guid OwningUserId);
 record GrantAccessRequest(Guid GroupId);
