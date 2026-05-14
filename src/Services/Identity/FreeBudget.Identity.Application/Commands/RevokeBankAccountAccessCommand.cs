@@ -15,6 +15,9 @@ internal sealed class RevokeBankAccountAccessHandler(IBankAccountRepository repo
         if (account is null)
             return Result<bool>.Failure($"Bank account '{request.BankAccountId}' not found.");
 
+        if (account.IsChild)
+            return Result<bool>.Failure("Revoke access on the parent account; children inherit automatically.");
+
         try
         {
             account.RevokeAccessFromGroup(request.GroupId);

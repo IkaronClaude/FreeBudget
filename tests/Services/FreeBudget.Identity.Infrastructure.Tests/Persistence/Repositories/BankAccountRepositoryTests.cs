@@ -109,4 +109,67 @@ public class BankAccountRepositoryTests
             accounts[0].Nickname.Should().Be("Shared");
         }
     }
+
+    [Fact]
+    public async Task GetByGroupAccessAsync_includes_children_of_a_granted_parent()
+    {
+        var options = CreateOptions();
+        var groupId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        Guid parentId, childGbpId, childEurId;
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var parent = BankAccount.CreateParent(ownerId, BankType.Wise, "Wise");
+            parent.GrantAccessToGroup(groupId);
+            var childGbp = BankAccount.CreateChild(parent, "GBP");
+            var childEur = BankAccount.CreateChild(parent, "EUR");
+            parentId = parent.Id;
+            childGbpId = childGbp.Id;
+            childEurId = childEur.Id;
+
+            var ungrantedStandalone = BankAccount.Create(ownerId, BankType.Barclays, "Barclays");
+            await context.BankAccounts.AddRangeAsync(parent, childGbp, childEur, ungrantedStandalone);
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var repo = new BankAccountRepository(context);
+            var accounts = await repo.GetByGroupAccessAsync(groupId);
+
+            accounts.Select(a => a.Id).Should().BeEquivalentTo(new[] { parentId, childGbpId, childEurId });
+        }
+    }
+
+    [Fact]
+    public async Task GetChildrenAsync_returns_only_direct_children()
+    {
+        var options = CreateOptions();
+        var ownerId = Guid.NewGuid();
+        Guid parentId;
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var parent = BankAccount.CreateParent(ownerId, BankType.Wise, "Wise");
+            parentId = parent.Id;
+            var gbp = BankAccount.CreateChild(parent, "GBP");
+            var eur = BankAccount.CreateChild(parent, "EUR");
+
+            var otherParent = BankAccount.CreateParent(ownerId, BankType.Wise, "Wise Business");
+            var otherGbp = BankAccount.CreateChild(otherParent, "GBP");
+
+            await context.BankAccounts.AddRangeAsync(parent, gbp, eur, otherParent, otherGbp);
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var repo = new BankAccountRepository(context);
+            var children = await repo.GetChildrenAsync(parentId);
+
+            children.Should().HaveCount(2);
+            children.Select(c => c.CurrencyCode).Should().BeEquivalentTo(new[] { "GBP", "EUR" });
+        }
+    }
 }
