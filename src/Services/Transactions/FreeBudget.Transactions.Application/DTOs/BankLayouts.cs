@@ -31,7 +31,7 @@ public static class BankLayouts
         },
         ExternalIdColumn = "ID",
         CategoryColumn = "Category",
-        TargetAmountColumn = "Target amount",
+        TargetAmountColumn = "Target amount (after fees)",
         TargetCurrencyColumn = "Target currency",
         DateFormat = "dd/MM/yyyy HH:mm",
         DefaultCurrencyCode = "GBP",

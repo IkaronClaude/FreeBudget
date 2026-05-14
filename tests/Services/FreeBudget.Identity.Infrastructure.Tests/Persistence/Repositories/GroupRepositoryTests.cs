@@ -102,4 +102,83 @@ public class GroupRepositoryTests
 
         found.Should().BeNull();
     }
+
+    [Fact]
+    public async Task UpdateAsync_persists_member_removal()
+    {
+        var options = CreateOptions();
+        var creatorId = Guid.NewGuid();
+        Guid groupId;
+        Guid removedId;
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var group = Group.Create("Household", creatorId);
+            var member = group.AddMember("guest");
+            removedId = member.Id;
+            groupId = group.Id;
+            await new GroupRepository(context).AddAsync(group);
+        }
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var repo = new GroupRepository(context);
+            var group = (await repo.GetByIdAsync(groupId))!;
+            group.RemoveMember(removedId);
+            await repo.UpdateAsync(group);
+        }
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var found = await context.Groups
+                .Include(g => g.Members)
+                .FirstAsync(g => g.Id == groupId);
+
+            found.Members.Should().ContainSingle()
+                .Which.OwningUserId.Should().Be(creatorId);
+        }
+    }
+
+    [Fact]
+    public async Task UpdateAsync_persists_added_renamed_and_removed_members_in_one_call()
+    {
+        var options = CreateOptions();
+        var creatorId = Guid.NewGuid();
+        Guid groupId;
+        Guid initialPlaceholderId;
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var group = Group.Create("Household", creatorId);
+            var placeholder = group.AddMember("placeholder");
+            initialPlaceholderId = placeholder.Id;
+            groupId = group.Id;
+            await new GroupRepository(context).AddAsync(group);
+        }
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var repo = new GroupRepository(context);
+            var group = (await repo.GetByIdAsync(groupId))!;
+
+            var renameTarget = group.Members.Single(m => m.Id == initialPlaceholderId);
+            renameTarget.Rename("partner");
+            group.AddMember("guest");
+            var creatorMember = group.Members.Single(m => m.OwningUserId == creatorId);
+            creatorMember.Rename("alice");
+
+            await repo.UpdateAsync(group);
+        }
+
+        await using (var context = new IdentityDbContext(options))
+        {
+            var found = await context.Groups
+                .Include(g => g.Members)
+                .FirstAsync(g => g.Id == groupId);
+
+            found.Members.Should().HaveCount(3);
+            found.Members.Select(m => m.Label)
+                .Should().BeEquivalentTo("alice", "partner", "guest");
+        }
+    }
 }
