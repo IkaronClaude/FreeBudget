@@ -43,6 +43,7 @@ public static class ImportLayoutsEndpoints
                 body.CategoryColumn,
                 body.TargetAmountColumn,
                 body.TargetCurrencyColumn,
+                body.CurrencyAccountMappings,
                 body.DateFormat,
                 body.HasHeaderRow,
                 body.Delimiter,

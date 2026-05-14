@@ -153,6 +153,7 @@ public sealed record UpsertImportLayoutInputDto(
     string? CategoryColumn,
     string? TargetAmountColumn,
     string? TargetCurrencyColumn,
+    Dictionary<string, Guid>? CurrencyAccountMappings,
     string DateFormat,
     bool HasHeaderRow,
     string Delimiter,
