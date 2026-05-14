@@ -6,4 +6,5 @@ public enum RuleMatchType
     Exact,
     StartsWith,
     EndsWith,
+    Any,
 }

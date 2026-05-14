@@ -70,7 +70,7 @@ export interface ImportCsvResponse {
   skippedDuplicates: number;
 }
 
-export type RuleMatchType = 'Contains' | 'Exact' | 'StartsWith' | 'EndsWith';
+export type RuleMatchType = 'Contains' | 'Exact' | 'StartsWith' | 'EndsWith' | 'Any';
 
 export interface CategorizationRule {
   id: string;
@@ -80,7 +80,7 @@ export interface CategorizationRule {
   priority: number;
 }
 
-export type LedgerEntryKind = 'Expense' | 'Settlement';
+export type LedgerEntryKind = 'Expense' | 'Settlement' | 'Exclude';
 
 export interface SharingRule {
   id: string;
