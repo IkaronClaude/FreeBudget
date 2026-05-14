@@ -4,4 +4,5 @@ public enum LedgerEntryKind
 {
     Expense = 0,
     Settlement = 1,
+    Exclude = 2,
 }

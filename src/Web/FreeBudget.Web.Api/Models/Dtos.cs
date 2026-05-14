@@ -154,7 +154,7 @@ public sealed record UpdateSharingRuleInputDto(
     Guid PaidByMemberId,
     IReadOnlyList<Guid> ParticipantMemberIds);
 
-public sealed record ApplySharingRulesResult(int Examined, int Matched, int Split, int Skipped, int TransfersPaired);
+public sealed record ApplySharingRulesResult(int Examined, int Matched, int Split, int Skipped, int Excluded, int TransfersPaired);
 
 public sealed record MatchTransfersResultDto(int Examined, int Matched, int AmbiguousSkipped);
 

@@ -87,14 +87,16 @@ public static class SharingRulesEndpoints
         rulesResp.EnsureSuccessStatusCode();
         var rules = await rulesResp.Content.ReadFromJsonAsync<List<SharingRuleDto>>(cancellationToken: ct) ?? [];
         if (rules.Count == 0)
-            return new ApplySharingRulesResult(0, 0, 0, 0, 0);
+            return new ApplySharingRulesResult(0, 0, 0, 0, 0, 0);
 
+        var orderedRules = rules.OrderByDescending(r => r.Priority).ToList();
         var accounts = await identity.GetUserBankAccountsAsync(userId, ct);
 
         var examined = 0;
         var matched = 0;
         var split = 0;
         var skipped = 0;
+        var excluded = 0;
 
         foreach (var account in accounts)
         {
@@ -105,9 +107,16 @@ public static class SharingRulesEndpoints
             foreach (var txn in txns)
             {
                 examined++;
-                var rule = rules.FirstOrDefault(r => Matches(r, txn.Description));
+                var rule = orderedRules.FirstOrDefault(r => Matches(r, txn.Description));
                 if (rule is null) continue;
                 matched++;
+
+                // Exclude rule wins: explicitly don't auto-share this transaction.
+                if (string.Equals(rule.EntryType, "Exclude", StringComparison.OrdinalIgnoreCase))
+                {
+                    excluded++;
+                    continue;
+                }
 
                 HttpResponseMessage resp;
                 if (string.Equals(rule.EntryType, "Settlement", StringComparison.OrdinalIgnoreCase))
@@ -167,12 +176,13 @@ public static class SharingRulesEndpoints
             }
         }
 
-        return new ApplySharingRulesResult(examined, matched, split, skipped, transfersPaired);
+        return new ApplySharingRulesResult(examined, matched, split, skipped, excluded, transfersPaired);
     }
 
     private static bool Matches(SharingRuleDto rule, string description) =>
         rule.MatchType.ToLowerInvariant() switch
         {
+            "any" => true,
             "contains" => description.Contains(rule.Pattern, StringComparison.OrdinalIgnoreCase),
             "exact" => description.Equals(rule.Pattern, StringComparison.OrdinalIgnoreCase),
             "startswith" => description.StartsWith(rule.Pattern, StringComparison.OrdinalIgnoreCase),

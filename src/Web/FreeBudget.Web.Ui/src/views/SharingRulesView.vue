@@ -31,7 +31,9 @@ const form = reactive<RuleForm>({
   settlementRecipientId: '',
 });
 const editingId = ref<string | null>(null);
-const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWith'];
+const matchTypes: RuleMatchType[] = ['Contains', 'Exact', 'StartsWith', 'EndsWith', 'Any'];
+
+const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 
 const formGroup = computed<Group | null>(() =>
   me.groups.find(g => g.id === form.groupId) ?? null
@@ -53,6 +55,17 @@ watch(() => form.groupId, () => {
   form.paidByMemberId = meMember?.id ?? formGroup.value.members[0]?.id ?? '';
   form.participantMemberIds = formGroup.value.members.map(m => m.id);
   form.settlementRecipientId = formGroup.value.members.find(m => m.id !== form.paidByMemberId)?.id ?? '';
+});
+
+// When the user flips an Exclude rule back to Expense/Settlement, repopulate
+// payer + participants from the current group so the form is valid again.
+watch(() => form.entryType, (next, prev) => {
+  if (prev === 'Exclude' && next !== 'Exclude' && formGroup.value) {
+    const meMember = formGroup.value.members.find(m => m.owningUserId === me.user?.id);
+    form.paidByMemberId = meMember?.id ?? formGroup.value.members[0]?.id ?? '';
+    form.participantMemberIds = formGroup.value.members.map(m => m.id);
+    form.settlementRecipientId = formGroup.value.members.find(m => m.id !== form.paidByMemberId)?.id ?? '';
+  }
 });
 
 async function load() {
@@ -94,13 +107,21 @@ function editRule(rule: SharingRule) {
 }
 
 function effectiveParticipants(): string[] {
+  if (form.entryType === 'Exclude') return [];
   return form.entryType === 'Settlement'
     ? (form.settlementRecipientId ? [form.settlementRecipientId] : [])
     : form.participantMemberIds;
 }
 
+function effectivePaidByMemberId(): string {
+  return form.entryType === 'Exclude' ? EMPTY_GUID : form.paidByMemberId;
+}
+
 const canSave = computed(() => {
-  if (!form.pattern.trim() || !form.groupId || !form.paidByMemberId) return false;
+  if (!form.groupId) return false;
+  if (form.matchType !== 'Any' && !form.pattern.trim()) return false;
+  if (form.entryType === 'Exclude') return true;
+  if (!form.paidByMemberId) return false;
   const p = effectiveParticipants();
   if (!p.length) return false;
   if (form.entryType === 'Settlement' && p[0] === form.paidByMemberId) return false;
@@ -112,12 +133,12 @@ async function saveRule() {
   error.value = null;
   try {
     const payload = {
-      pattern: form.pattern.trim(),
+      pattern: form.matchType === 'Any' ? '' : form.pattern.trim(),
       matchType: form.matchType,
       entryType: form.entryType,
       priority: form.priority,
       groupId: form.groupId,
-      paidByMemberId: form.paidByMemberId,
+      paidByMemberId: effectivePaidByMemberId(),
       participantMemberIds: effectiveParticipants(),
     };
     if (editingId.value) {
@@ -149,10 +170,10 @@ async function applyToExisting() {
   applyMessage.value = null;
   error.value = null;
   try {
-    const { data } = await api.post<{ examined: number; matched: number; split: number; skipped: number; transfersPaired: number }>(
+    const { data } = await api.post<{ examined: number; matched: number; split: number; skipped: number; excluded: number; transfersPaired: number }>(
       '/sharing-rules/apply'
     );
-    applyMessage.value = `Examined ${data.examined}, matched ${data.matched}, applied ${data.split}, skipped ${data.skipped}. Transfer pairs found: ${data.transfersPaired}.`;
+    applyMessage.value = `Examined ${data.examined}, matched ${data.matched}, applied ${data.split}, excluded ${data.excluded}, skipped ${data.skipped}. Transfer pairs found: ${data.transfersPaired}.`;
   } catch (e: any) {
     error.value = e?.response?.data?.error ?? (e instanceof Error ? e.message : 'Apply failed');
   } finally {
@@ -163,6 +184,9 @@ async function applyToExisting() {
 function summary(rule: SharingRule): string {
   const g = me.groups.find(gr => gr.id === rule.groupId);
   const groupName = g?.name ?? '?';
+  if (rule.entryType === 'Exclude') {
+    return `Exclude: don't auto-share with ${groupName}`;
+  }
   const payer = findMember(rule.groupId, rule.paidByMemberId);
   const payerName = payer ? memberLabel(payer) : '?';
   const others = rule.participantMemberIds
@@ -211,7 +235,7 @@ watch(() => me.groups, () => {
 
     <section class="bg-white rounded border border-slate-200 p-4 space-y-3">
       <h3 class="font-medium">{{ editingId ? 'Edit rule' : 'New rule' }}</h3>
-      <div class="flex gap-4 text-sm">
+      <div class="flex flex-wrap gap-4 text-sm">
         <label class="flex items-center gap-2">
           <input v-model="form.entryType" type="radio" value="Expense" />
           <span>Expense (split debt across members)</span>
@@ -220,12 +244,20 @@ watch(() => me.groups, () => {
           <input v-model="form.entryType" type="radio" value="Settlement" />
           <span>Settlement (clear existing debt)</span>
         </label>
+        <label class="flex items-center gap-2">
+          <input v-model="form.entryType" type="radio" value="Exclude" />
+          <span>Don't share (skip matched transactions)</span>
+        </label>
       </div>
       <div class="grid gap-3 md:grid-cols-4">
-        <label class="flex flex-col text-sm md:col-span-2">
+        <label v-if="form.matchType !== 'Any'" class="flex flex-col text-sm md:col-span-2">
           <span class="text-slate-600 mb-1">Pattern</span>
           <input v-model="form.pattern" type="text" placeholder="Transfer to Joint" class="border border-slate-300 rounded px-3 py-2" />
         </label>
+        <div v-else class="md:col-span-2 self-end pb-2 text-xs text-slate-500">
+          Pattern is ignored — this rule matches every transaction. Useful as a
+          low-priority catch-all "exclude everything else".
+        </div>
         <label class="flex flex-col text-sm">
           <span class="text-slate-600 mb-1">Match</span>
           <select v-model="form.matchType" class="border border-slate-300 rounded px-3 py-2">
@@ -242,7 +274,7 @@ watch(() => me.groups, () => {
             <option v-for="g in me.groups" :key="g.id" :value="g.id">{{ g.name }}</option>
           </select>
         </label>
-        <label v-if="formGroup" class="flex flex-col text-sm md:col-span-2">
+        <label v-if="formGroup && form.entryType !== 'Exclude'" class="flex flex-col text-sm md:col-span-2">
           <span class="text-slate-600 mb-1">{{ form.entryType === 'Settlement' ? 'Sender (your side)' : 'Paid by' }}</span>
           <select v-model="form.paidByMemberId" class="border border-slate-300 rounded px-3 py-2">
             <option v-for="m in formGroup.members" :key="m.id" :value="m.id">{{ memberLabel(m) }}</option>

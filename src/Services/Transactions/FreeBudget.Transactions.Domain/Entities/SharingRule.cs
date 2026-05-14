@@ -28,13 +28,13 @@ public sealed class SharingRule : Entity<Guid>, IAuditableEntity
         IReadOnlyList<Guid> participantMemberIds,
         int priority = 0)
     {
-        Validate(createdByUserId, pattern, groupId, paidByMemberId, participantMemberIds, entryType);
+        Validate(createdByUserId, pattern, matchType, groupId, paidByMemberId, participantMemberIds, entryType);
 
         return new SharingRule
         {
             Id = Guid.NewGuid(),
             CreatedByUserId = createdByUserId,
-            Pattern = pattern.Trim(),
+            Pattern = (pattern ?? string.Empty).Trim(),
             RuleMatchType = matchType,
             EntryType = entryType,
             Priority = priority,
@@ -53,9 +53,9 @@ public sealed class SharingRule : Entity<Guid>, IAuditableEntity
         IReadOnlyList<Guid> participantMemberIds,
         int priority)
     {
-        Validate(CreatedByUserId, pattern, groupId, paidByMemberId, participantMemberIds, entryType);
+        Validate(CreatedByUserId, pattern, matchType, groupId, paidByMemberId, participantMemberIds, entryType);
 
-        Pattern = pattern.Trim();
+        Pattern = (pattern ?? string.Empty).Trim();
         RuleMatchType = matchType;
         EntryType = entryType;
         GroupId = groupId;
@@ -68,6 +68,7 @@ public sealed class SharingRule : Entity<Guid>, IAuditableEntity
     {
         return RuleMatchType switch
         {
+            RuleMatchType.Any => true,
             RuleMatchType.Contains => description.Contains(Pattern, StringComparison.OrdinalIgnoreCase),
             RuleMatchType.Exact => description.Equals(Pattern, StringComparison.OrdinalIgnoreCase),
             RuleMatchType.StartsWith => description.StartsWith(Pattern, StringComparison.OrdinalIgnoreCase),
@@ -79,6 +80,7 @@ public sealed class SharingRule : Entity<Guid>, IAuditableEntity
     private static void Validate(
         Guid createdByUserId,
         string pattern,
+        RuleMatchType matchType,
         Guid groupId,
         Guid paidByMemberId,
         IReadOnlyList<Guid> participantMemberIds,
@@ -88,16 +90,23 @@ public sealed class SharingRule : Entity<Guid>, IAuditableEntity
             throw new ArgumentException("User ID cannot be empty.", nameof(createdByUserId));
         if (groupId == Guid.Empty)
             throw new ArgumentException("Group ID cannot be empty.", nameof(groupId));
-        if (paidByMemberId == Guid.Empty)
-            throw new ArgumentException("Payer member ID cannot be empty.", nameof(paidByMemberId));
-        ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
+        if (matchType != RuleMatchType.Any)
+            ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
         ArgumentNullException.ThrowIfNull(participantMemberIds);
-        if (participantMemberIds.Count == 0)
-            throw new ArgumentException("At least one participant is required.", nameof(participantMemberIds));
         if (participantMemberIds.Any(id => id == Guid.Empty))
             throw new ArgumentException("Participant member IDs cannot be empty.", nameof(participantMemberIds));
         if (participantMemberIds.Distinct().Count() != participantMemberIds.Count)
             throw new ArgumentException("Participant member IDs must be unique.", nameof(participantMemberIds));
+
+        // Exclude rules don't post to the ledger so they don't need a payer
+        // or participants. Expense/Settlement rules do.
+        if (entryType == LedgerEntryKind.Exclude)
+            return;
+
+        if (paidByMemberId == Guid.Empty)
+            throw new ArgumentException("Payer member ID cannot be empty.", nameof(paidByMemberId));
+        if (participantMemberIds.Count == 0)
+            throw new ArgumentException("At least one participant is required.", nameof(participantMemberIds));
         if (entryType == LedgerEntryKind.Settlement)
         {
             if (participantMemberIds.Count != 1)
