@@ -15,8 +15,32 @@ public static class BankAccountsEndpoints
             CancellationToken ct) =>
         {
             var me = await currentUser.GetAsync(ct);
-            var payload = new { OwnerUserId = me.Id, body.BankType, body.Nickname };
+            var payload = new { OwnerUserId = me.Id, body.BankType, body.Nickname, body.CurrencyCode };
             var response = await identity.Http.PostAsJsonAsync("/api/bank-accounts", payload, ct);
+            var content = await response.Content.ReadAsStringAsync(ct);
+            return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);
+        });
+
+        app.MapPost("/api/bank-accounts/parent", async (
+            CreateParentBankAccountDto body,
+            ICurrentUserResolver currentUser,
+            IdentityClient identity,
+            CancellationToken ct) =>
+        {
+            var me = await currentUser.GetAsync(ct);
+            var payload = new { OwnerUserId = me.Id, body.BankType, body.Nickname, body.CurrencyCodes };
+            var response = await identity.Http.PostAsJsonAsync("/api/bank-accounts/parent", payload, ct);
+            var content = await response.Content.ReadAsStringAsync(ct);
+            return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);
+        });
+
+        app.MapPost("/api/bank-accounts/{parentId:guid}/children", async (
+            Guid parentId,
+            AddBankAccountChildDto body,
+            IdentityClient identity,
+            CancellationToken ct) =>
+        {
+            var response = await identity.Http.PostAsJsonAsync($"/api/bank-accounts/{parentId}/children", body, ct);
             var content = await response.Content.ReadAsStringAsync(ct);
             return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);
         });

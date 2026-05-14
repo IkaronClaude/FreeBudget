@@ -23,9 +23,20 @@ internal sealed class BankAccountRepository(IdentityDbContext context) : IBankAc
             .Where(b => b.AccessGrants.Any(a => a.GroupId == groupId))
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<BankAccount>> GetChildrenAsync(Guid parentId, CancellationToken cancellationToken = default)
+        => await context.BankAccounts
+            .Where(b => b.ParentBankAccountId == parentId)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(BankAccount bankAccount, CancellationToken cancellationToken = default)
     {
         await context.BankAccounts.AddAsync(bankAccount, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task AddRangeAsync(IEnumerable<BankAccount> bankAccounts, CancellationToken cancellationToken = default)
+    {
+        await context.BankAccounts.AddRangeAsync(bankAccounts, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
     }
 

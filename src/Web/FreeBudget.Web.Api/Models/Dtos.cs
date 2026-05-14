@@ -80,7 +80,9 @@ public sealed record UpdateCategorizationRuleRequest(
 public sealed record UpdateCategoryDto(string? Category);
 public sealed record BulkCategoryDto(IReadOnlyList<Guid> TransactionIds, string? Category);
 
-public sealed record CreateBankAccountDto(string BankType, string Nickname);
+public sealed record CreateBankAccountDto(string BankType, string Nickname, string? CurrencyCode);
+public sealed record CreateParentBankAccountDto(string BankType, string Nickname, IReadOnlyList<string> CurrencyCodes);
+public sealed record AddBankAccountChildDto(string CurrencyCode);
 public sealed record RenameBankAccountDto(string Nickname);
 
 public sealed record CreateGroupDto(string Name, string? CreatorLabel);

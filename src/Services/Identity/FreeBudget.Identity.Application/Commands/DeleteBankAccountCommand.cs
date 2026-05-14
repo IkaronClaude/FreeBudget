@@ -15,6 +15,14 @@ internal sealed class DeleteBankAccountHandler(IBankAccountRepository repository
         if (account is null)
             return Result<bool>.Failure($"Bank account '{request.BankAccountId}' not found.");
 
+        if (account.ParentBankAccountId is null)
+        {
+            var children = await repository.GetChildrenAsync(account.Id, cancellationToken);
+            if (children.Count > 0)
+                return Result<bool>.Failure(
+                    "This account still has currency sub-accounts. Delete them first before removing the parent.");
+        }
+
         await repository.DeleteAsync(account, cancellationToken);
         return Result<bool>.Success(true);
     }

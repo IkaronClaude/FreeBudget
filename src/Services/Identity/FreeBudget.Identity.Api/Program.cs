@@ -176,7 +176,31 @@ app.MapPost("/api/bank-accounts", async (
     CancellationToken ct) =>
 {
     var result = await mediator.Send(
-        new CreateBankAccountCommand(request.OwnerUserId, request.BankType, request.Nickname), ct);
+        new CreateBankAccountCommand(request.OwnerUserId, request.BankType, request.Nickname, request.CurrencyCode), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Created($"/api/bank-accounts/{result.Value!.Id}", result.Value);
+});
+
+app.MapPost("/api/bank-accounts/parent", async (
+    CreateParentBankAccountRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(
+        new CreateParentBankAccountCommand(request.OwnerUserId, request.BankType, request.Nickname, request.CurrencyCodes), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Created($"/api/bank-accounts/{result.Value!.Id}", result.Value);
+});
+
+app.MapPost("/api/bank-accounts/{parentId:guid}/children", async (
+    Guid parentId,
+    AddBankAccountChildRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new AddBankAccountChildCommand(parentId, request.CurrencyCode), ct);
     if (result.IsFailure)
         return Results.UnprocessableEntity(new { result.Error });
     return Results.Created($"/api/bank-accounts/{result.Value!.Id}", result.Value);
@@ -240,7 +264,9 @@ app.MapGet("/api/groups/{id:guid}/bank-accounts", async (
 
 await app.RunAsync();
 
-record CreateBankAccountRequest(Guid OwnerUserId, string BankType, string Nickname);
+record CreateBankAccountRequest(Guid OwnerUserId, string BankType, string Nickname, string? CurrencyCode);
+record CreateParentBankAccountRequest(Guid OwnerUserId, string BankType, string Nickname, IReadOnlyList<string> CurrencyCodes);
+record AddBankAccountChildRequest(string CurrencyCode);
 record RenameBankAccountRequest(string Nickname);
 record CreateGroupRequest(string Name, Guid CreatedByUserId, string? CreatorLabel);
 record RenameGroupRequest(string Name);
