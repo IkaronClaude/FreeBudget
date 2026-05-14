@@ -48,7 +48,7 @@
 
 ## Notes
 
-- 308 total tests across 11 test projects
+- 352 total tests across 11 test projects
 - Default admin: admin@freebudget.local / "Admin" (seeded on first startup in dev mode)
 - Architecture: event queue for inter-service comms (deferred until cross-service flow needed)
 - Future: overnight bank feed auto-pull for connected accounts

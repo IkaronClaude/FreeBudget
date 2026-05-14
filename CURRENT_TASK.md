@@ -22,4 +22,4 @@ feature/parent-bank-accounts
 
 ## Progress
 
-7 commits on branch, all tests green (308 total, +13 new). UI typechecks. Ready to merge.
+7 commits on branch, all tests green (352 total). UI typechecks. Ready to merge.
