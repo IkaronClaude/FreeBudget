@@ -28,8 +28,16 @@ internal sealed class BankAccountConfiguration : IEntityTypeConfiguration<BankAc
 
         builder.Property(b => b.Nickname)
             .HasColumnName("nickname")
-            .HasMaxLength(200)
-            .IsRequired();
+            .HasMaxLength(200);
+
+        builder.Property(b => b.ParentBankAccountId)
+            .HasColumnName("parent_bank_account_id");
+
+        builder.HasIndex(b => b.ParentBankAccountId);
+
+        builder.Property(b => b.CurrencyCode)
+            .HasColumnName("currency_code")
+            .HasMaxLength(3);
 
         builder.Property(b => b.ExternalAccountId)
             .HasColumnName("external_account_id")
