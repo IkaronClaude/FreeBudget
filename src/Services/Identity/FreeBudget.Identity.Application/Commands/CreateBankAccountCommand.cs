@@ -10,7 +10,8 @@ namespace FreeBudget.Identity.Application.Commands;
 public sealed record CreateBankAccountCommand(
     Guid OwnerUserId,
     string BankType,
-    string Nickname) : IRequest<Result<BankAccountDto>>;
+    string Nickname,
+    string? CurrencyCode = null) : IRequest<Result<BankAccountDto>>;
 
 internal sealed class CreateBankAccountHandler(IBankAccountRepository repository)
     : IRequestHandler<CreateBankAccountCommand, Result<BankAccountDto>>
@@ -27,7 +28,7 @@ internal sealed class CreateBankAccountHandler(IBankAccountRepository repository
             return Result<BankAccountDto>.Failure(ex.Message);
         }
 
-        var account = BankAccount.Create(request.OwnerUserId, bankType, request.Nickname);
+        var account = BankAccount.Create(request.OwnerUserId, bankType, request.Nickname, request.CurrencyCode);
         await repository.AddAsync(account, cancellationToken);
 
         return Result<BankAccountDto>.Success(new BankAccountDto(
@@ -37,6 +38,8 @@ internal sealed class CreateBankAccountHandler(IBankAccountRepository repository
             account.Nickname,
             account.ExternalAccountId,
             account.HasApiCredentials,
+            account.ParentBankAccountId,
+            account.CurrencyCode,
             account.AccessGrants.Select(g => g.GroupId).ToList()));
     }
 }

@@ -47,4 +47,24 @@ public class GetUserBankAccountsHandlerTests
 
         result.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Children_inherit_AccessibleGroupIds_from_parent()
+    {
+        var userId = Guid.NewGuid();
+        var groupId = Guid.NewGuid();
+        var parent = BankAccount.CreateParent(userId, BankType.Wise, "Wise");
+        parent.GrantAccessToGroup(groupId);
+        var child = BankAccount.CreateChild(parent, "GBP");
+
+        _repo.GetByOwnerUserIdAsync(userId, Arg.Any<CancellationToken>())
+            .Returns(new[] { parent, child });
+
+        var result = await _handler.Handle(new GetUserBankAccountsQuery(userId), CancellationToken.None);
+
+        var parentDto = result.Single(a => a.Id == parent.Id);
+        var childDto = result.Single(a => a.Id == child.Id);
+        parentDto.AccessibleGroupIds.Should().BeEquivalentTo(new[] { groupId });
+        childDto.AccessibleGroupIds.Should().BeEquivalentTo(new[] { groupId });
+    }
 }

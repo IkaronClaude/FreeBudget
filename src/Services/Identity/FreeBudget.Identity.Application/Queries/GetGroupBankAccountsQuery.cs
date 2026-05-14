@@ -12,15 +12,24 @@ internal sealed class GetGroupBankAccountsHandler(IBankAccountRepository reposit
     public async Task<IReadOnlyList<BankAccountDto>> Handle(GetGroupBankAccountsQuery request, CancellationToken cancellationToken)
     {
         var accounts = await repository.GetByGroupAccessAsync(request.GroupId, cancellationToken);
+        var byId = accounts.ToDictionary(a => a.Id);
         return accounts
-            .Select(a => new BankAccountDto(
-                a.Id,
-                a.OwnerUserId,
-                a.BankType.Name,
-                a.Nickname,
-                a.ExternalAccountId,
-                a.HasApiCredentials,
-                a.AccessGrants.Select(g => g.GroupId).ToList()))
+            .Select(a =>
+            {
+                var grantSource = a.ParentBankAccountId is not null && byId.TryGetValue(a.ParentBankAccountId.Value, out var parent)
+                    ? parent
+                    : a;
+                return new BankAccountDto(
+                    a.Id,
+                    a.OwnerUserId,
+                    a.BankType.Name,
+                    a.Nickname,
+                    a.ExternalAccountId,
+                    a.HasApiCredentials,
+                    a.ParentBankAccountId,
+                    a.CurrencyCode,
+                    grantSource.AccessGrants.Select(g => g.GroupId).ToList());
+            })
             .ToList();
     }
 }

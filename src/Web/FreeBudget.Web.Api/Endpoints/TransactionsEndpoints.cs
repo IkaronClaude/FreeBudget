@@ -103,9 +103,39 @@ public static class TransactionsEndpoints
                 new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType ?? "text/csv");
             content.Add(streamContent, "file", file.FileName);
 
-            var url = $"/api/transactions/import?bankAccountId={bankAccountId}&layout={Uri.EscapeDataString(layout)}";
+            // Resolve the metadata owner: a child's layout lives on its parent. While we're
+            // there, build the implicit currency→child map so the user doesn't have to
+            // re-configure routing every import.
+            var me = await currentUser.GetAsync(ct);
+            var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
+            var ownerId = accounts.ResolveLayoutOwnerId(bankAccountId);
+            var importTargetId = ownerId; // route rows from the parent; children pick up via map.
+
+            var implicitMap = accounts.BuildCurrencyAccountMap(ownerId);
+            Dictionary<string, Guid> effectiveMap;
             if (!string.IsNullOrWhiteSpace(currencyMap))
-                url += $"&currencyMap={Uri.EscapeDataString(currencyMap)}";
+            {
+                try
+                {
+                    var explicitMap = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Guid>>(currencyMap)
+                        ?? new Dictionary<string, Guid>();
+                    effectiveMap = new Dictionary<string, Guid>(implicitMap, StringComparer.OrdinalIgnoreCase);
+                    foreach (var (currency, accountId) in explicitMap)
+                        effectiveMap[currency.Trim().ToUpperInvariant()] = accountId; // explicit overrides
+                }
+                catch
+                {
+                    effectiveMap = new Dictionary<string, Guid>(implicitMap, StringComparer.OrdinalIgnoreCase);
+                }
+            }
+            else
+            {
+                effectiveMap = new Dictionary<string, Guid>(implicitMap, StringComparer.OrdinalIgnoreCase);
+            }
+
+            var url = $"/api/transactions/import?bankAccountId={importTargetId}&layout={Uri.EscapeDataString(layout)}";
+            if (effectiveMap.Count > 0)
+                url += $"&currencyMap={Uri.EscapeDataString(System.Text.Json.JsonSerializer.Serialize(effectiveMap))}";
             var response = await client.Http.PostAsync(url, content, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
 
@@ -118,7 +148,6 @@ public static class TransactionsEndpoints
             // import itself already succeeded.
             try
             {
-                var me = await currentUser.GetAsync(ct);
                 await SharingRulesEndpoints.RunApplyAsync(me.Id, identity, client, ledger, ct);
             }
             catch

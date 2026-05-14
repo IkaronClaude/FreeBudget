@@ -1,7 +1,12 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { api } from '../api/client';
 import type { MeResponse, User, Group, BankAccount } from '../api/types';
+
+export interface AccountGroup {
+  parent: BankAccount;
+  children: BankAccount[];
+}
 
 export const useMeStore = defineStore('me', () => {
   const user = ref<User | null>(null);
@@ -30,5 +35,47 @@ export const useMeStore = defineStore('me', () => {
 
   const refresh = () => load(true);
 
-  return { user, groups, bankAccounts, loading, error, load, refresh };
+  function accountById(id: string | null | undefined): BankAccount | undefined {
+    if (!id) return undefined;
+    return bankAccounts.value.find(a => a.id === id);
+  }
+
+  function accountLabel(account: BankAccount | null | undefined): string {
+    if (!account) return '';
+    if (account.parentBankAccountId) {
+      const parent = accountById(account.parentBankAccountId);
+      const stem = parent?.nickname ?? account.bankType;
+      return account.currencyCode ? `${stem} (${account.currencyCode})` : stem;
+    }
+    return account.currencyCode ? `${account.nickname ?? account.bankType} (${account.currencyCode})` : (account.nickname ?? account.bankType);
+  }
+
+  const standaloneAccounts = computed<BankAccount[]>(() =>
+    bankAccounts.value.filter(a => !a.parentBankAccountId && !hasChildren(a.id)));
+
+  const accountGroups = computed<AccountGroup[]>(() => {
+    const parents = bankAccounts.value.filter(a => !a.parentBankAccountId && hasChildren(a.id));
+    return parents.map(parent => ({
+      parent,
+      children: bankAccounts.value.filter(a => a.parentBankAccountId === parent.id),
+    }));
+  });
+
+  function hasChildren(parentId: string): boolean {
+    return bankAccounts.value.some(a => a.parentBankAccountId === parentId);
+  }
+
+  return {
+    user,
+    groups,
+    bankAccounts,
+    loading,
+    error,
+    load,
+    refresh,
+    accountById,
+    accountLabel,
+    standaloneAccounts,
+    accountGroups,
+  };
 });

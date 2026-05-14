@@ -23,9 +23,11 @@ export interface BankAccount {
   id: string;
   ownerUserId: string;
   bankType: string;
-  nickname: string;
+  nickname?: string | null;
   externalAccountId?: string | null;
   hasApiCredentials: boolean;
+  parentBankAccountId?: string | null;
+  currencyCode?: string | null;
 }
 
 export interface MeResponse {

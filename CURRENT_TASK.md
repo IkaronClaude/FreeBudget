@@ -1,23 +1,25 @@
 # Current Task
 
-## Status: complete
+## Status: in progress
 
 ## Task
 
-Fix import-layout persistence — target amount/currency columns and currency→account routing weren't surviving a save.
+Parent bank accounts — a Wise "shell" bank account can have currency sub-accounts (Wise GBP, Wise EUR, Wise USD) that inherit metadata (nickname, import layout, group access) from the parent.
 
 ## Branch
 
-fix/import-layout-persistence (ready to merge to main)
+feature/parent-bank-accounts
 
-## Plan
+## Plan (originally 8 commits, ended up 7 — 6 and 7 merged)
 
-- [x] Forward TargetAmountColumn/TargetCurrencyColumn through Web API (`Dtos.cs`, `ImportLayoutsEndpoints.cs`); remove dead duplicate `ImportLayoutDto`
-- [x] Persist `CurrencyAccountMappings` on `ImportLayoutDefinition` (jsonb) + EF migration
-- [x] Wire new field through `ImportLayoutDto`, GET/PUT handlers, Transactions API record, Web API DTO + payload, UI type + saveLayout
-- [x] UI hydrates `currencyToAccount` from saved layout and syncs changes back before save
-- [x] Tests: 3 new UpsertImportLayoutHandler tests covering create/update/null-map
+- [x] 1. Domain: BankAccount.ParentBankAccountId + CurrencyCode + factories + tests
+- [x] 2. EF config + migration
+- [x] 3. BankAccountDto + GetUserBankAccounts/GroupBankAccounts plumbing
+- [x] 4. Identity API: create-parent + add-child endpoints; delete guards
+- [x] 5. Group access inheritance (child sees parent's grants)
+- [x] 6+7. Web API resolves metadata-owner for import layout CRUD and infers currency routing from parent's children
+- [x] 8. UI: grouped AccountsView + multi-currency add flow; ImportBuilder defaults routing to matching currency child
 
 ## Progress
 
-3 commits on branch. 295 tests passing (was 292, +3 new). UI typechecks clean.
+7 commits on branch, all tests green (352 total). UI typechecks. Ready to merge.

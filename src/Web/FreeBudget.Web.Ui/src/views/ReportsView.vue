@@ -79,7 +79,7 @@ const periodBars = computed(() =>
           <span class="text-slate-600 mb-1">Bank account</span>
           <select v-model="selectedAccountId" class="border border-slate-300 rounded px-3 py-2 min-w-[14rem]">
             <option v-for="a in me.bankAccounts" :key="a.id" :value="a.id">
-              {{ a.nickname }} ({{ a.bankType }})
+              {{ me.accountLabel(a) }} ({{ a.bankType }})
             </option>
           </select>
         </label>

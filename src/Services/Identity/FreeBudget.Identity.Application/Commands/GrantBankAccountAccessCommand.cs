@@ -15,6 +15,9 @@ internal sealed class GrantBankAccountAccessHandler(IBankAccountRepository repos
         if (account is null)
             return Result<bool>.Failure($"Bank account '{request.BankAccountId}' not found.");
 
+        if (account.IsChild)
+            return Result<bool>.Failure("Grant access on the parent account; children inherit automatically.");
+
         try
         {
             account.GrantAccessToGroup(request.GroupId);
