@@ -114,6 +114,7 @@ app.MapPut("/api/bank-accounts/{id:guid}/import-layout", async (
         request.CurrencyColumn, request.DirectionColumn, request.DirectionMappings,
         request.ExternalIdColumn, request.RunningBalanceColumn, request.CategoryColumn,
         request.TargetAmountColumn, request.TargetCurrencyColumn,
+        request.CurrencyAccountMappings,
         request.DateFormat, request.HasHeaderRow, request.Delimiter, request.DefaultCurrencyCode);
     var result = await mediator.Send(new UpsertImportLayoutCommand(id, request.CreatedByUserId, dto), ct);
     if (result.IsFailure)
@@ -141,6 +142,7 @@ app.MapGet("/api/import-layouts/presets", () =>
         l.DirectionMappings is null ? null : new Dictionary<string, string>(l.DirectionMappings),
         l.ExternalIdColumn, l.RunningBalanceColumn, l.CategoryColumn,
         l.TargetAmountColumn, l.TargetCurrencyColumn,
+        null,
         l.DateFormat, l.HasHeaderRow, l.Delimiter.ToString(), l.DefaultCurrencyCode);
 
     return Results.Ok(new[]
@@ -421,6 +423,7 @@ record UpsertImportLayoutRequest(
     string? CategoryColumn,
     string? TargetAmountColumn,
     string? TargetCurrencyColumn,
+    Dictionary<string, Guid>? CurrencyAccountMappings,
     string DateFormat,
     bool HasHeaderRow,
     string Delimiter,
