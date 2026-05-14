@@ -10,17 +10,16 @@ Parent bank accounts — a Wise "shell" bank account can have currency sub-accou
 
 feature/parent-bank-accounts
 
-## Plan (8 commits)
+## Plan (originally 8 commits, ended up 7 — 6 and 7 merged)
 
-- [ ] 1. Domain: BankAccount.ParentBankAccountId + CurrencyCode + factories + tests
-- [ ] 2. EF config + migration
-- [ ] 3. BankAccountDto + GetUserBankAccounts/GroupBankAccounts plumbing
-- [ ] 4. Identity API: create-parent + add-child endpoints; delete guards
-- [ ] 5. Group access inheritance (child sees parent's grants)
-- [ ] 6. ImportLayout: resolve metadata-owner (parent if exists, else self)
-- [ ] 7. ImportCsv: infer currency routing from parent's children
-- [ ] 8. UI: grouped AccountsView + multi-currency add flow; ImportBuilder uses inferred routing
+- [x] 1. Domain: BankAccount.ParentBankAccountId + CurrencyCode + factories + tests
+- [x] 2. EF config + migration
+- [x] 3. BankAccountDto + GetUserBankAccounts/GroupBankAccounts plumbing
+- [x] 4. Identity API: create-parent + add-child endpoints; delete guards
+- [x] 5. Group access inheritance (child sees parent's grants)
+- [x] 6+7. Web API resolves metadata-owner for import layout CRUD and infers currency routing from parent's children
+- [x] 8. UI: grouped AccountsView + multi-currency add flow; ImportBuilder defaults routing to matching currency child
 
 ## Progress
 
-Branch created. Starting commit 1.
+7 commits on branch, all tests green (308 total, +13 new). UI typechecks. Ready to merge.

@@ -39,6 +39,8 @@
 - [x] Move Money value object from Transactions.Domain to SharedKernel for cross-service use
 - [x] Transaction split workflow: SplitTransactionCommand creates multiple ledger entries from one transaction with duplicate-split prevention
 - [x] Import layout persistence: forward TargetAmount/TargetCurrency columns through Web API; persist currency→account routing on the layout (jsonb) so it survives reloads
+- [x] Skip zero-amount CSV rows (active card checks)
+- [x] Parent bank accounts: Wise-style parent shell with one currency child per code; metadata (nickname, import layout, group access) inherits from parent; currency routing on import inferred from siblings
 
 ## Bugs
 
@@ -46,7 +48,7 @@
 
 ## Notes
 
-- 295 total tests across 11 test projects
+- 308 total tests across 11 test projects
 - Default admin: admin@freebudget.local / "Admin" (seeded on first startup in dev mode)
 - Architecture: event queue for inter-service comms (deferred until cross-service flow needed)
 - Future: overnight bank feed auto-pull for connected accounts

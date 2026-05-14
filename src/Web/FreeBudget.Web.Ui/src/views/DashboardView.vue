@@ -29,7 +29,7 @@ const me = useMeStore();
         <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide mb-2">Bank accounts</h3>
         <ul v-if="me.bankAccounts.length" class="space-y-1">
           <li v-for="a in me.bankAccounts" :key="a.id" class="flex justify-between">
-            <span>{{ a.nickname }}</span>
+            <span>{{ me.accountLabel(a) }}</span>
             <span class="text-xs text-slate-500">{{ a.bankType }}</span>
           </li>
         </ul>

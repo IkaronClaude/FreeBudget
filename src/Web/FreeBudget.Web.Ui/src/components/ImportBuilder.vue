@@ -229,10 +229,22 @@ const detectedCurrencies = computed<string[]>(() => {
 
 const currencyToAccount = reactive<Record<string, string>>({});
 
+function findCurrencyChild(currency: string): string | null {
+  const target = me.accountById(props.bankAccountId);
+  if (!target) return null;
+  const parentId = target.parentBankAccountId ?? target.id;
+  const match = me.bankAccounts.find(
+    a => a.parentBankAccountId === parentId && a.currencyCode?.toUpperCase() === currency,
+  );
+  return match?.id ?? null;
+}
+
 watch(detectedCurrencies, (currencies) => {
-  // Default each currency to the current account; user can change.
+  // Prefer the sibling currency child when one exists, fall back to the current account.
   for (const c of currencies) {
-    if (!currencyToAccount[c]) currencyToAccount[c] = props.bankAccountId;
+    if (!currencyToAccount[c]) {
+      currencyToAccount[c] = findCurrencyChild(c) ?? props.bankAccountId;
+    }
   }
 });
 
@@ -428,7 +440,7 @@ const needsRouting = computed(() => detectedCurrencies.value.length > 1);
             <span>→</span>
             <select v-model="currencyToAccount[c]" class="border border-slate-300 rounded px-2 py-1 flex-1 max-w-md">
               <option v-for="a in me.bankAccounts" :key="a.id" :value="a.id">
-                {{ a.nickname }} ({{ a.bankType }})
+                {{ me.accountLabel(a) }} ({{ a.bankType }})
               </option>
             </select>
           </div>
