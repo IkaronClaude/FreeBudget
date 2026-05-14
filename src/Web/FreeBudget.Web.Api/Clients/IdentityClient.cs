@@ -30,3 +30,24 @@ public sealed class IdentityClient(HttpClient http)
 
     public HttpClient Http => http;
 }
+
+public static class BankAccountHierarchyExtensions
+{
+    // Layout, group access, and other metadata live on the parent for child accounts.
+    public static Guid ResolveLayoutOwnerId(this IReadOnlyList<BankAccountDto> accounts, Guid bankAccountId)
+    {
+        var account = accounts.FirstOrDefault(a => a.Id == bankAccountId);
+        return account?.ParentBankAccountId ?? bankAccountId;
+    }
+
+    public static IReadOnlyDictionary<string, Guid> BuildCurrencyAccountMap(
+        this IReadOnlyList<BankAccountDto> accounts, Guid parentId)
+    {
+        var map = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        foreach (var child in accounts.Where(a => a.ParentBankAccountId == parentId && !string.IsNullOrWhiteSpace(a.CurrencyCode)))
+        {
+            map[child.CurrencyCode!.ToUpperInvariant()] = child.Id;
+        }
+        return map;
+    }
+}

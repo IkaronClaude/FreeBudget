@@ -10,10 +10,15 @@ public static class ImportLayoutsEndpoints
     {
         app.MapGet("/api/bank-accounts/{id:guid}/import-layout", async (
             Guid id,
+            ICurrentUserResolver currentUser,
+            IdentityClient identity,
             TransactionsClient client,
             CancellationToken ct) =>
         {
-            var response = await client.Http.GetAsync($"/api/bank-accounts/{id}/import-layout", ct);
+            var me = await currentUser.GetAsync(ct);
+            var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
+            var ownerId = accounts.ResolveLayoutOwnerId(id);
+            var response = await client.Http.GetAsync($"/api/bank-accounts/{ownerId}/import-layout", ct);
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return Results.NotFound();
             var content = await response.Content.ReadAsStringAsync(ct);
@@ -24,10 +29,13 @@ public static class ImportLayoutsEndpoints
             Guid id,
             UpsertImportLayoutInputDto body,
             ICurrentUserResolver currentUser,
+            IdentityClient identity,
             TransactionsClient client,
             CancellationToken ct) =>
         {
             var me = await currentUser.GetAsync(ct);
+            var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
+            var ownerId = accounts.ResolveLayoutOwnerId(id);
             var payload = new
             {
                 CreatedByUserId = me.Id,
@@ -49,17 +57,22 @@ public static class ImportLayoutsEndpoints
                 body.Delimiter,
                 body.DefaultCurrencyCode,
             };
-            var response = await client.Http.PutAsJsonAsync($"/api/bank-accounts/{id}/import-layout", payload, ct);
+            var response = await client.Http.PutAsJsonAsync($"/api/bank-accounts/{ownerId}/import-layout", payload, ct);
             var content = await response.Content.ReadAsStringAsync(ct);
             return Results.Content(content, "application/json", statusCode: (int)response.StatusCode);
         });
 
         app.MapDelete("/api/bank-accounts/{id:guid}/import-layout", async (
             Guid id,
+            ICurrentUserResolver currentUser,
+            IdentityClient identity,
             TransactionsClient client,
             CancellationToken ct) =>
         {
-            var response = await client.Http.DeleteAsync($"/api/bank-accounts/{id}/import-layout", ct);
+            var me = await currentUser.GetAsync(ct);
+            var accounts = await identity.GetUserBankAccountsAsync(me.Id, ct);
+            var ownerId = accounts.ResolveLayoutOwnerId(id);
+            var response = await client.Http.DeleteAsync($"/api/bank-accounts/{ownerId}/import-layout", ct);
             return response.IsSuccessStatusCode
                 ? Results.NoContent()
                 : Results.StatusCode((int)response.StatusCode);
