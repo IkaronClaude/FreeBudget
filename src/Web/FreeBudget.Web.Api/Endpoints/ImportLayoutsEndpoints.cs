@@ -41,6 +41,8 @@ public static class ImportLayoutsEndpoints
                 body.ExternalIdColumn,
                 body.RunningBalanceColumn,
                 body.CategoryColumn,
+                body.TargetAmountColumn,
+                body.TargetCurrencyColumn,
                 body.DateFormat,
                 body.HasHeaderRow,
                 body.Delimiter,

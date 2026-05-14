@@ -87,24 +87,6 @@ public sealed record AddGroupMemberDto(string Label, Guid? OwningUserId);
 public sealed record RenameGroupMemberDto(string Label);
 public sealed record LinkGroupMemberDto(Guid OwningUserId);
 
-public sealed record ImportLayoutDto(
-    Guid? Id,
-    Guid BankAccountId,
-    string Name,
-    string DateColumn,
-    string DescriptionColumn,
-    string AmountColumn,
-    string? CurrencyColumn,
-    string? DirectionColumn,
-    Dictionary<string, string>? DirectionMappings,
-    string? ExternalIdColumn,
-    string? RunningBalanceColumn,
-    string? CategoryColumn,
-    string DateFormat,
-    bool HasHeaderRow,
-    string Delimiter,
-    string DefaultCurrencyCode);
-
 public sealed record SplitParticipantInputDto(Guid MemberId, decimal Amount);
 
 public sealed record SplitTransactionInputDto(
@@ -169,6 +151,8 @@ public sealed record UpsertImportLayoutInputDto(
     string? ExternalIdColumn,
     string? RunningBalanceColumn,
     string? CategoryColumn,
+    string? TargetAmountColumn,
+    string? TargetCurrencyColumn,
     string DateFormat,
     bool HasHeaderRow,
     string Delimiter,
