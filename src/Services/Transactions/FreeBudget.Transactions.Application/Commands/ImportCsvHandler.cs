@@ -49,6 +49,10 @@ internal sealed class ImportCsvHandler(
 
             foreach (var raw in rawTransactions)
             {
+                // Zero-amount rows (e.g. Wise's "active card check" refunds) carry no value.
+                if (raw.Amount == 0m && (raw.TargetAmount ?? 0m) == 0m)
+                    continue;
+
                 // Neutral direction = currency conversion. Emit one debit on the source
                 // currency's account plus one credit on the target currency's account.
                 if (string.Equals(raw.Direction, "Neutral", StringComparison.OrdinalIgnoreCase))
