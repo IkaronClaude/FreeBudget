@@ -159,6 +159,30 @@ public class ImportCsvHandlerTests
     }
 
     [Fact]
+    public async Task Handle_drops_zero_amount_rows()
+    {
+        var rawTransactions = new List<RawBankTransaction>
+        {
+            new("CHECK-1", new DateTime(2024, 5, 1), "ACTIVE CARD CHECK", 0m, "GBP", "Debit", null, null),
+            new("REAL-1", new DateTime(2024, 5, 2), "COFFEE", 3.50m, "GBP", "Debit", null, null),
+            new("FX-CHECK", new DateTime(2024, 5, 3), "FX CHECK", 0m, "GBP", "Neutral", null, null, 0m, "EUR"),
+        };
+
+        _parser.ParseAsync(Arg.Any<Stream>(), Arg.Any<ImportLayout>(), Arg.Any<CancellationToken>())
+            .Returns(rawTransactions);
+
+        var command = new ImportCsvCommand(BankAccountId, Stream.Null, TestLayout);
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.TransactionCount.Should().Be(1);
+        result.Value.SkippedDuplicates.Should().Be(0);
+        await _transactionRepo.Received(1).AddRangeAsync(
+            Arg.Is<IEnumerable<Transaction>>(t => t.Count() == 1 && t.First().Description == "COFFEE"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Handle_applies_categorization_rules_to_uncategorized_transactions()
     {
         var rawTransactions = new List<RawBankTransaction>
