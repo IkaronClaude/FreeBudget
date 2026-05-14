@@ -140,5 +140,26 @@ internal sealed class CsvTransactionParser : ICsvTransactionParser
                 throw new InvalidOperationException(
                     $"Required column '{col}' not found in CSV. Available columns: {string.Join(", ", headers)}");
         }
+
+        // Optional columns are tolerated when absent, but if the layout names a
+        // column that the CSV does not actually contain, fail loudly — silently
+        // returning null leads to misleading errors deeper in the pipeline
+        // (e.g. a Neutral FX row that claims to be missing the target amount).
+        var optional = new (string? Column, string Label)[]
+        {
+            (layout.DirectionColumn, "Direction"),
+            (layout.CurrencyColumn, "Currency"),
+            (layout.CategoryColumn, "Category"),
+            (layout.ExternalIdColumn, "External ID"),
+            (layout.RunningBalanceColumn, "Running balance"),
+            (layout.TargetAmountColumn, "Target amount"),
+            (layout.TargetCurrencyColumn, "Target currency"),
+        };
+        foreach (var (col, label) in optional)
+        {
+            if (col is not null && !headerSet.Contains(col))
+                throw new InvalidOperationException(
+                    $"{label} column '{col}' was configured but not found in CSV. Available columns: {string.Join(", ", headers)}");
+        }
     }
 }

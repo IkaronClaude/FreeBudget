@@ -383,6 +383,7 @@ const needsRouting = computed(() => detectedCurrencies.value.length > 1);
               <select v-model="m.to" class="border border-slate-300 rounded px-2 py-1">
                 <option value="Credit">Credit</option>
                 <option value="Debit">Debit</option>
+                <option value="Neutral">Neutral (FX conversion — splits into two transactions)</option>
               </select>
               <button @click="removeMappingRow(i)" class="text-red-600 hover:underline text-xs">Remove</button>
             </div>

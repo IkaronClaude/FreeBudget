@@ -30,7 +30,25 @@ internal sealed class GroupRepository(IdentityDbContext context) : IGroupReposit
 
     public async Task UpdateAsync(Group group, CancellationToken cancellationToken = default)
     {
-        context.Groups.Update(group);
+        // The Group root + members already loaded by GetByIdAsync are tracked.
+        // For members added via group.AddMember in the handler, EF's
+        // DetectChanges discovers them but marks them Modified (since their
+        // generated Guid Id is non-default) — that causes EF to issue an
+        // UPDATE for a row that does not exist yet ("expected 1 row affected,
+        // got 0"). Fix it by comparing against the actual stored ids and
+        // flipping unknown ones to Added.
+        var storedMemberIds = await context.GroupMembers
+            .Where(m => m.GroupId == group.Id)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+        var storedSet = storedMemberIds.ToHashSet();
+
+        foreach (var member in group.Members)
+        {
+            if (!storedSet.Contains(member.Id))
+                context.Entry(member).State = EntityState.Added;
+        }
+
         await context.SaveChangesAsync(cancellationToken);
     }
 
