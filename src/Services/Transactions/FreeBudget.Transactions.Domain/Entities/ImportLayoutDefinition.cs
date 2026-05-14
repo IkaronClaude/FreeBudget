@@ -20,6 +20,7 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
     public string? CategoryColumn { get; private set; }
     public string? TargetAmountColumn { get; private set; }
     public string? TargetCurrencyColumn { get; private set; }
+    public Dictionary<string, Guid> CurrencyAccountMappings { get; private set; } = new();
     public string DateFormat { get; private set; } = "dd/MM/yyyy";
     public bool HasHeaderRow { get; private set; } = true;
     public string Delimiter { get; private set; } = ",";
@@ -42,6 +43,7 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
         string? categoryColumn = null,
         string? targetAmountColumn = null,
         string? targetCurrencyColumn = null,
+        Dictionary<string, Guid>? currencyAccountMappings = null,
         string dateFormat = "dd/MM/yyyy",
         bool hasHeaderRow = true,
         string delimiter = ",",
@@ -76,6 +78,7 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
             CategoryColumn = Trim(categoryColumn),
             TargetAmountColumn = Trim(targetAmountColumn),
             TargetCurrencyColumn = Trim(targetCurrencyColumn),
+            CurrencyAccountMappings = NormaliseCurrencyMap(currencyAccountMappings),
             DateFormat = dateFormat,
             HasHeaderRow = hasHeaderRow,
             Delimiter = delimiter,
@@ -96,6 +99,7 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
         string? categoryColumn,
         string? targetAmountColumn,
         string? targetCurrencyColumn,
+        Dictionary<string, Guid>? currencyAccountMappings,
         string dateFormat,
         bool hasHeaderRow,
         string delimiter,
@@ -121,6 +125,7 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
         CategoryColumn = Trim(categoryColumn);
         TargetAmountColumn = Trim(targetAmountColumn);
         TargetCurrencyColumn = Trim(targetCurrencyColumn);
+        CurrencyAccountMappings = NormaliseCurrencyMap(currencyAccountMappings);
         DateFormat = dateFormat;
         HasHeaderRow = hasHeaderRow;
         Delimiter = delimiter;
@@ -129,4 +134,16 @@ public sealed class ImportLayoutDefinition : Entity<Guid>, IAuditableEntity
 
     private static string? Trim(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static Dictionary<string, Guid> NormaliseCurrencyMap(Dictionary<string, Guid>? source)
+    {
+        if (source is null || source.Count == 0) return new Dictionary<string, Guid>();
+        var result = new Dictionary<string, Guid>(source.Count);
+        foreach (var (currency, accountId) in source)
+        {
+            if (string.IsNullOrWhiteSpace(currency) || accountId == Guid.Empty) continue;
+            result[currency.Trim().ToUpperInvariant()] = accountId;
+        }
+        return result;
+    }
 }

@@ -44,6 +44,7 @@ async function loadInitialLayout() {
     if (saved) {
       Object.assign(layout, saved);
       hydrateMappings();
+      hydrateCurrencyRouting();
       return;
     }
     if (props.bankType === 'Barclays' || props.bankType === 'Wise') {
@@ -52,11 +53,13 @@ async function loadInitialLayout() {
       if (preset) {
         Object.assign(layout, preset, { bankAccountId: props.bankAccountId });
         hydrateMappings();
+        hydrateCurrencyRouting();
         return;
       }
     }
     Object.assign(layout, blankLayout(props.bankAccountId));
     directionMappingRows.value = [];
+    for (const k of Object.keys(currencyToAccount)) delete currencyToAccount[k];
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load layout';
   }
@@ -66,6 +69,14 @@ function hydrateMappings() {
   directionMappingRows.value = layout.directionMappings
     ? Object.entries(layout.directionMappings).map(([from, to]) => ({ from, to }))
     : [];
+}
+
+function hydrateCurrencyRouting() {
+  for (const k of Object.keys(currencyToAccount)) delete currencyToAccount[k];
+  if (!layout.currencyAccountMappings) return;
+  for (const [currency, accountId] of Object.entries(layout.currencyAccountMappings)) {
+    currencyToAccount[currency.toUpperCase()] = accountId;
+  }
 }
 
 function syncMappings() {
@@ -78,6 +89,14 @@ function syncMappings() {
     if (row.from.trim() && row.to.trim()) dict[row.from.trim()] = row.to.trim();
   }
   layout.directionMappings = Object.keys(dict).length ? dict : null;
+}
+
+function syncCurrencyRouting() {
+  const dict: Record<string, string> = {};
+  for (const [currency, accountId] of Object.entries(currencyToAccount)) {
+    if (accountId) dict[currency.toUpperCase()] = accountId;
+  }
+  layout.currencyAccountMappings = Object.keys(dict).length ? dict : null;
 }
 
 watch(directionMappingRows, syncMappings, { deep: true });
@@ -138,6 +157,7 @@ async function persistLayout(): Promise<boolean> {
   error.value = null;
   try {
     syncMappings();
+    syncCurrencyRouting();
     await saveLayout(props.bankAccountId, layout);
     return true;
   } catch (e: unknown) {
@@ -215,6 +235,8 @@ watch(detectedCurrencies, (currencies) => {
     if (!currencyToAccount[c]) currencyToAccount[c] = props.bankAccountId;
   }
 });
+
+watch(currencyToAccount, syncCurrencyRouting, { deep: true });
 
 const needsRouting = computed(() => detectedCurrencies.value.length > 1);
 </script>

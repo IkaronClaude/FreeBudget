@@ -29,6 +29,7 @@ internal sealed class GetImportLayoutHandler(IImportLayoutRepository repository)
             layout.CategoryColumn,
             layout.TargetAmountColumn,
             layout.TargetCurrencyColumn,
+            layout.CurrencyAccountMappings.Count == 0 ? null : new Dictionary<string, Guid>(layout.CurrencyAccountMappings),
             layout.DateFormat,
             layout.HasHeaderRow,
             layout.Delimiter,

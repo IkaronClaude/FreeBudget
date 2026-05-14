@@ -49,6 +49,19 @@ internal sealed class ImportLayoutDefinitionConfiguration : IEntityTypeConfigura
                 v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, (JsonSerializerOptions?)null) ?? new Dictionary<string, string>())
             .Metadata.SetValueComparer(dictComparer);
 
+        var currencyMapComparer = new ValueComparer<Dictionary<string, Guid>>(
+            (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+            d => d == null ? 0 : d.Aggregate(0, (h, kv) => HashCode.Combine(h, kv.Key.GetHashCode(), kv.Value.GetHashCode())),
+            d => new Dictionary<string, Guid>(d));
+
+        builder.Property(l => l.CurrencyAccountMappings)
+            .HasColumnName("currency_account_mappings")
+            .HasColumnType("jsonb")
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v => JsonSerializer.Deserialize<Dictionary<string, Guid>>(v, (JsonSerializerOptions?)null) ?? new Dictionary<string, Guid>())
+            .Metadata.SetValueComparer(currencyMapComparer);
+
         builder.Property(l => l.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(l => l.ModifiedAt).HasColumnName("modified_at");
     }
