@@ -7,4 +7,6 @@ public sealed record BankAccountDto(
     string? Nickname,
     string? ExternalAccountId,
     bool HasApiCredentials,
+    Guid? ParentBankAccountId,
+    string? CurrencyCode,
     IReadOnlyList<Guid> AccessibleGroupIds);

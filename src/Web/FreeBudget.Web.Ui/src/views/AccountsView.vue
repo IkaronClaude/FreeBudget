@@ -42,7 +42,7 @@ async function createAccount() {
 }
 
 function startRename(account: BankAccount) {
-  renaming.value = { id: account.id, nickname: account.nickname };
+  renaming.value = { id: account.id, nickname: account.nickname ?? '' };
 }
 
 function cancelRename() {

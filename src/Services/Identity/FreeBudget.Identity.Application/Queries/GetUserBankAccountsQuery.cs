@@ -20,6 +20,8 @@ internal sealed class GetUserBankAccountsHandler(IBankAccountRepository reposito
                 a.Nickname,
                 a.ExternalAccountId,
                 a.HasApiCredentials,
+                a.ParentBankAccountId,
+                a.CurrencyCode,
                 a.AccessGrants.Select(g => g.GroupId).ToList()))
             .ToList();
     }

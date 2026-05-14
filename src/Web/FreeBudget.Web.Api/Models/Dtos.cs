@@ -19,9 +19,11 @@ public sealed record BankAccountDto(
     Guid Id,
     Guid OwnerUserId,
     string BankType,
-    string Nickname,
+    string? Nickname,
     string? ExternalAccountId,
-    bool HasApiCredentials);
+    bool HasApiCredentials,
+    Guid? ParentBankAccountId,
+    string? CurrencyCode);
 
 public sealed record MeResponse(
     UserDto User,
