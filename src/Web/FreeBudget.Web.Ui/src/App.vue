@@ -1,15 +1,31 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { RouterLink, RouterView } from 'vue-router';
+import { onMounted, watch } from 'vue';
+import { RouterLink, RouterView, useRouter } from 'vue-router';
 import { useMeStore } from './stores/me';
+import { useAuthStore } from './stores/auth';
 
 const me = useMeStore();
-onMounted(() => me.load());
+const auth = useAuthStore();
+const router = useRouter();
+
+onMounted(() => {
+  if (auth.isAuthenticated) me.load();
+});
+
+watch(() => auth.isAuthenticated, isAuth => {
+  if (isAuth) me.load();
+});
+
+function logout() {
+  auth.logout();
+  me.reset();
+  router.push({ name: 'login' });
+}
 </script>
 
 <template>
   <div class="min-h-full flex flex-col bg-slate-50 text-slate-900">
-    <header class="bg-white border-b border-slate-200">
+    <header v-if="auth.isAuthenticated" class="bg-white border-b border-slate-200">
       <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-6">
         <h1 class="text-xl font-semibold tracking-tight">FreeBudget</h1>
         <nav class="flex gap-4 text-sm">
@@ -22,15 +38,22 @@ onMounted(() => me.load());
           <RouterLink to="/groups" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Groups</RouterLink>
           <RouterLink to="/ledger" class="hover:text-blue-600" active-class="text-blue-600 font-medium">Ledger</RouterLink>
         </nav>
-        <div class="ml-auto text-sm text-slate-500">
+        <div class="ml-auto flex items-center gap-3 text-sm text-slate-500">
           <span v-if="me.user">{{ me.user.displayName }}</span>
           <span v-else-if="me.error" class="text-red-600">{{ me.error }}</span>
           <span v-else>Loading...</span>
+          <button
+            type="button"
+            @click="logout"
+            class="px-3 py-1 text-xs border border-slate-300 rounded hover:bg-slate-100"
+          >
+            Sign out
+          </button>
         </div>
       </div>
     </header>
     <main class="flex-1">
-      <div class="max-w-6xl mx-auto px-6 py-6">
+      <div :class="auth.isAuthenticated ? 'max-w-6xl mx-auto px-6 py-6' : ''">
         <RouterView />
       </div>
     </main>
