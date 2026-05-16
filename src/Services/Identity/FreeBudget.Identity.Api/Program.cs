@@ -1,6 +1,7 @@
 using FreeBudget.Common.Infrastructure.Middleware;
 using FreeBudget.Identity.Application;
 using FreeBudget.Identity.Application.Commands;
+using FreeBudget.Identity.Application.Interfaces;
 using FreeBudget.Identity.Application.Queries;
 using FreeBudget.Identity.Domain.Entities;
 using FreeBudget.Identity.Domain.ValueObjects;
@@ -35,6 +36,14 @@ if (app.Environment.IsDevelopment())
         await db.SaveChangesAsync();
     }
 
+    if (!await db.UserCredentials.AnyAsync(c => c.UserId == admin.Id))
+    {
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        var credential = UserCredential.Create(admin.Id, hasher.Hash("Admin123!"));
+        await db.UserCredentials.AddAsync(credential);
+        await db.SaveChangesAsync();
+    }
+
     if (!await db.Groups.AnyAsync(g => g.CreatedByUserId == admin.Id))
     {
         var personalGroup = Group.Create("Personal", admin.Id);
@@ -56,6 +65,29 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Service = "Identity" }));
+
+app.MapPost("/api/auth/register", async (
+    RegisterUserRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(
+        new RegisterUserCommand(request.Email, request.DisplayName, request.Password), ct);
+    if (result.IsFailure)
+        return Results.UnprocessableEntity(new { result.Error });
+    return Results.Created($"/api/users/{result.Value!.Id}", result.Value);
+});
+
+app.MapPost("/api/auth/verify", async (
+    VerifyCredentialsRequest request,
+    IMediator mediator,
+    CancellationToken ct) =>
+{
+    var result = await mediator.Send(new VerifyCredentialsCommand(request.Email, request.Password), ct);
+    if (result.IsFailure)
+        return Results.Unauthorized();
+    return Results.Ok(result.Value);
+});
 
 app.MapGet("/api/users", async (
     string email,
@@ -264,6 +296,8 @@ app.MapGet("/api/groups/{id:guid}/bank-accounts", async (
 
 await app.RunAsync();
 
+record RegisterUserRequest(string Email, string DisplayName, string Password);
+record VerifyCredentialsRequest(string Email, string Password);
 record CreateBankAccountRequest(Guid OwnerUserId, string BankType, string Nickname, string? CurrencyCode);
 record CreateParentBankAccountRequest(Guid OwnerUserId, string BankType, string Nickname, IReadOnlyList<string> CurrencyCodes);
 record AddBankAccountChildRequest(string CurrencyCode);
