@@ -1,25 +1,39 @@
 # Current Task
 
-## Status: in progress
+## Status: complete (ready to merge)
 
 ## Task
 
-Parent bank accounts — a Wise "shell" bank account can have currency sub-accounts (Wise GBP, Wise EUR, Wise USD) that inherit metadata (nickname, import layout, group access) from the parent.
+Add user accounts: registration, login, logout. Provider-agnostic — local
+password store with a pluggable JWT issuer so an OIDC provider (Keycloak,
+Google, etc.) can be slotted in later without restructuring.
 
 ## Branch
 
-feature/parent-bank-accounts
+feature/authentication
 
-## Plan (originally 8 commits, ended up 7 — 6 and 7 merged)
+## Plan (5 commits)
 
-- [x] 1. Domain: BankAccount.ParentBankAccountId + CurrencyCode + factories + tests
-- [x] 2. EF config + migration
-- [x] 3. BankAccountDto + GetUserBankAccounts/GroupBankAccounts plumbing
-- [x] 4. Identity API: create-parent + add-child endpoints; delete guards
-- [x] 5. Group access inheritance (child sees parent's grants)
-- [x] 6+7. Web API resolves metadata-owner for import layout CRUD and infers currency routing from parent's children
-- [x] 8. UI: grouped AccountsView + multi-currency add flow; ImportBuilder defaults routing to matching currency child
+- [x] 1. Domain: UserCredential entity + IPasswordHasher contract + tests
+- [x] 2. Infrastructure: BCryptPasswordHasher, EF config, migration, repository + tests
+- [x] 3. Identity.Application: RegisterUser/VerifyCredentials commands; Identity.Api auth endpoints; admin seed gains password "Admin123!"
+- [x] 4. Web.Api: JwtBearer middleware, ITokenIssuer + LocalJwtTokenIssuer, /api/auth/login + /register, ClaimsCurrentUserResolver, fallback auth policy
+- [x] 5. Web UI: Pinia auth store with localStorage token, axios interceptor, router guard, LoginView + RegisterView, sign-out button
 
 ## Progress
 
-7 commits on branch, all tests green (352 total). UI typechecks. Ready to merge.
+5 commits on branch, 387 tests passing (was 352). Vue typechecks. End-to-end
+verified against running stack: /api/me 401 without token; admin login →
+JWT → /api/me 200; register new user → JWT → /api/me 200 with empty
+groups/accounts (scoped per-user); duplicate email and short password
+each return 422 with the expected error.
+
+## Out of scope (not yet)
+
+- Inter-service JWT validation: Transactions/Ledger/Categorization still
+  trust Web.Api and accept userId via params. JWT validation lives only
+  at the Web.Api edge for now.
+- External OIDC providers (Keycloak/Google). Architecture is ready — drop
+  in an IExternalAuthProvider abstraction and an alternate ITokenIssuer
+  when needed.
+- Password reset / email verification.
