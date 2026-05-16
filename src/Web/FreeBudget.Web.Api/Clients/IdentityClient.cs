@@ -3,6 +3,12 @@ using FreeBudget.Web.Api.Models;
 
 namespace FreeBudget.Web.Api.Clients;
 
+public sealed record IdentityResult<T>(bool IsSuccess, T? Value, string? Error)
+{
+    public static IdentityResult<T> Ok(T value) => new(true, value, null);
+    public static IdentityResult<T> Fail(string error) => new(false, default, error);
+}
+
 public sealed class IdentityClient(HttpClient http)
 {
     public async Task<UserDto?> GetUserByEmailAsync(string email, CancellationToken ct)
@@ -13,6 +19,37 @@ public sealed class IdentityClient(HttpClient http)
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<UserDto>(cancellationToken: ct);
     }
+
+    public async Task<UserDto?> VerifyCredentialsAsync(string email, string password, CancellationToken ct)
+    {
+        var response = await http.PostAsJsonAsync(
+            "/api/auth/verify", new { Email = email, Password = password }, ct);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+            return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<UserDto>(cancellationToken: ct);
+    }
+
+    public async Task<IdentityResult<UserDto>> RegisterAsync(
+        string email, string displayName, string password, CancellationToken ct)
+    {
+        var response = await http.PostAsJsonAsync(
+            "/api/auth/register",
+            new { Email = email, DisplayName = displayName, Password = password },
+            ct);
+
+        if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            var err = await response.Content.ReadFromJsonAsync<ErrorPayload>(cancellationToken: ct);
+            return IdentityResult<UserDto>.Fail(err?.Error ?? "Registration failed.");
+        }
+
+        response.EnsureSuccessStatusCode();
+        var user = await response.Content.ReadFromJsonAsync<UserDto>(cancellationToken: ct);
+        return IdentityResult<UserDto>.Ok(user!);
+    }
+
+    private sealed record ErrorPayload(string Error);
 
     public async Task<IReadOnlyList<GroupDto>> GetUserGroupsAsync(Guid userId, CancellationToken ct)
     {

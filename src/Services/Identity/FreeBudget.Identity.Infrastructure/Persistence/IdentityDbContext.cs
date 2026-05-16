@@ -12,6 +12,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<BankAccountAccess> BankAccountAccess => Set<BankAccountAccess>();
+    public DbSet<UserCredential> UserCredentials => Set<UserCredential>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

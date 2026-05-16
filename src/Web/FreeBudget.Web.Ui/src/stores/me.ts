@@ -35,6 +35,14 @@ export const useMeStore = defineStore('me', () => {
 
   const refresh = () => load(true);
 
+  function reset() {
+    user.value = null;
+    groups.value = [];
+    bankAccounts.value = [];
+    error.value = null;
+    loading.value = false;
+  }
+
   function accountById(id: string | null | undefined): BankAccount | undefined {
     if (!id) return undefined;
     return bankAccounts.value.find(a => a.id === id);
@@ -73,6 +81,7 @@ export const useMeStore = defineStore('me', () => {
     error,
     load,
     refresh,
+    reset,
     accountById,
     accountLabel,
     standaloneAccounts,

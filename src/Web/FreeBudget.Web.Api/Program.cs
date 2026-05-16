@@ -1,6 +1,11 @@
+using System.Text;
+using FreeBudget.Web.Api.Auth;
 using FreeBudget.Web.Api.Clients;
 using FreeBudget.Web.Api.CurrentUser;
 using FreeBudget.Web.Api.Endpoints;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,8 +17,39 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 builder.Services.AddCors(opt => opt.AddPolicy(CorsPolicy, policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 
-builder.Services.Configure<CurrentUserOptions>(builder.Configuration.GetSection("CurrentUser"));
-builder.Services.AddSingleton<ICurrentUserResolver, SeededAdminCurrentUserResolver>();
+builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
+var authOptions = builder.Configuration.GetSection("Auth").Get<AuthOptions>() ?? new AuthOptions();
+if (string.IsNullOrWhiteSpace(authOptions.JwtSigningKey))
+    throw new InvalidOperationException(
+        "Auth:JwtSigningKey is not configured. Provide a strong signing key via appsettings or environment.");
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<ITokenIssuer, LocalJwtTokenIssuer>();
+builder.Services.AddScoped<ICurrentUserResolver, ClaimsCurrentUserResolver>();
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = authOptions.JwtIssuer,
+            ValidAudience = authOptions.JwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authOptions.JwtSigningKey)),
+            ClockSkew = TimeSpan.FromMinutes(1),
+        };
+    });
+
+builder.Services.AddAuthorization(opt =>
+{
+    opt.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 builder.Services.AddHttpClient<IdentityClient>(c =>
     c.BaseAddress = new Uri(builder.Configuration["Services:Identity"]
@@ -41,8 +77,13 @@ app.UseCors(CorsPolicy);
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Service = "Web.Api" }));
+app.UseAuthentication();
+app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Service = "Web.Api" }))
+    .AllowAnonymous();
+
+app.MapAuthEndpoints();
 app.MapMeEndpoints();
 app.MapUsersEndpoints();
 app.MapTransactionsEndpoints();
